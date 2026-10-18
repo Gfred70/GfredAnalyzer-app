@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GfredAnalyzer</title>
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B1220">
+<style>
+  :root{
+    --deep:#0B1220; --panel:#111B2C; --panel2:#17243A; --line:#24344C;
+    --mist:#D8E1EA; --mist-dim:#71839A;
+    --o2:#5AA1EE; --he:#B59118; --n2:#9B3BFF; --ok:#2BD45A; --warn:#FF9F1A; --red:#F23A3A;
+    --yellow:#FFE600; --grey:#848A92;
+    --mono:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:radial-gradient(ellipse 900px 480px at 50% -10%,#16294A 0%,transparent 60%),var(--deep);
+       color:var(--mist);font-family:var(--sans);min-height:100vh;padding-bottom:40px;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px;}
+  header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  .headrow{max-width:560px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;}
+  .headrow img{width:38px;height:38px;}
+  .brand{flex:1;min-width:0;}
+  .brand b{display:block;font-size:15px;letter-spacing:.05em;}
+  .brand small{font-family:var(--mono);font-size:10.5px;color:var(--mist-dim);}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--red);white-space:nowrap;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--red);}
+  .chip.up{color:var(--ok);} .chip.up .dot{background:var(--ok);box-shadow:0 0 8px var(--ok);}
+  .chip.busy{color:var(--warn);} .chip.busy .dot{background:var(--warn);animation:pulse 1s infinite;}
+  @keyframes pulse{50%{opacity:.3;}}
+  nav{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 10px;max-width:560px;margin:0 auto;scrollbar-width:none;}
+  nav::-webkit-scrollbar{display:none;}
+  nav button{flex:none;background:var(--panel);color:var(--mist-dim);border:1px solid var(--line);border-radius:999px;
+             padding:7px 13px;font:600 13px var(--sans);}
+  nav button.on{background:var(--o2);color:#06101F;border-color:var(--o2);}
+  nav button.soon{opacity:.55;}
+  .btn{display:block;width:100%;margin:14px 0;padding:14px;border-radius:12px;border:none;font:700 15px var(--sans);
+       background:var(--o2);color:#06101F;}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mist);}
+  .btn.small{display:inline-block;width:auto;margin:8px 0 0;padding:8px 12px;font-size:13px;}
+  section{display:none;} section.on{display:block;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0;}
+  h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist-dim);margin:18px 2px 4px;}
+  .note{font-size:12.5px;color:var(--mist-dim);line-height:1.45;}
+  /* ── Direct : miroir de l'écran ── */
+  .screen{background:#000;border:1px solid var(--line);border-radius:14px;padding:12px 14px;position:relative;}
+  .corners{display:grid;grid-template-columns:1fr 1fr;row-gap:4px;}
+  .gas{font-weight:800;font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .gas small{font-size:15px;font-weight:700;margin-right:4px;}
+  .gas.r{text-align:right;}
+  .ref{font-size:12px;font-weight:700;margin-left:6px;vertical-align:middle;}
+  .center{display:grid;grid-template-columns:70px 1fr 90px;align-items:center;min-height:64px;margin:6px 0;}
+  .skull{font-size:40px;line-height:1;text-align:left;}
+  .tx{text-align:center;font-weight:800;font-size:34px;}
+  .breath{text-align:right;color:var(--yellow);font-weight:800;font-size:13px;line-height:1.2;}
+  .breath span{font-size:22px;}
+  table.md{width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums;}
+  table.md td,table.md th{border:1px solid #2a2f38;padding:5px 6px;text-align:center;font-size:15px;font-weight:700;}
+  table.md th{color:var(--grey);font-size:12px;font-weight:600;}
+  .raw{color:var(--yellow);font-family:var(--mono);font-size:12px;margin-top:8px;text-align:center;}
+  .meta{display:flex;justify-content:space-between;color:var(--grey);font-size:12px;margin-top:8px;}
+  .frz{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-weight:800;
+       font-size:11px;padding:2px 8px;border-radius:6px;display:none;}
+  .stale{color:var(--warn);font-size:12.5px;text-align:center;margin-top:8px;display:none;}
+  .blink{animation:blink 1s steps(1) infinite;} @keyframes blink{50%{opacity:0;}}
+  /* ── Analyses ── */
+  .mem{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;}
+  .mem.dep{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok) inset;}
+  .memtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .memdt{font-family:var(--mono);font-size:12px;color:var(--mist-dim);}
+  .memgas{font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;}
+  .memgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;font-size:12.5px;text-align:center;}
+  .memgrid div{background:var(--panel2);border-radius:8px;padding:5px 2px;}
+  .memgrid b{display:block;font-size:15px;font-variant-numeric:tabular-nums;}
+  .badge{font-size:11px;font-weight:800;color:#06101F;background:var(--ok);border-radius:6px;padding:2px 6px;}
+  .soonbox{text-align:center;padding:28px 14px;}
+  .soonbox b{display:block;font-size:17px;margin-bottom:6px;}
+  footer{margin-top:22px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="headrow">
+    <img src="icon-192.png" alt="">
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.1.0 · firmware —</small></div>
+    <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
+  </div>
+  <nav id="tabs">
+    <button data-t="direct" class="on">Direct</button>
+    <button data-t="analyses">Analyses</button>
+    <button data-t="bestmix" class="soon">Best Mix</button>
+    <button data-t="gonflage" class="soon">Gonflage</button>
+    <button data-t="prix" class="soon">Prix</button>
+    <button data-t="courbes" class="soon">Courbes</button>
+    <button data-t="appareil" class="soon">Appareil</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <div id="nobt" class="panel" style="display:none">
+    <b>Ce navigateur ne sait pas faire de Bluetooth.</b>
+    <p class="note">Ouvre cette page dans Chrome (Android ou ordinateur). Safari et les navigateurs iPhone ne peuvent pas parler en Bluetooth à une page web. Les analyses déjà gardées dans ce téléphone restent visibles.</p>
+  </div>
+  <button class="btn" id="connectBtn">Connecter via Bluetooth</button>
+
+  <!-- ───────────── DIRECT ───────────── -->
+  <section id="direct" class="on">
+    <div class="screen" id="scr">
+      <div class="frz" id="frz">REC · ÉCRAN FIGÉ</div>
+      <div class="corners">
+        <div class="gas" id="cO2"><small>O2</small><span id="vO2">---</span><span class="ref" id="vRef"></span></div>
+        <div class="gas r" id="cHe"><small>He</small><span id="vHe">---</span></div>
+      </div>
+      <div class="center">
+        <div class="skull" id="vSkull"></div>
+        <div class="tx" id="vTx">---</div>
+        <div class="breath" id="vBreath"></div>
+      </div>
+      <div class="corners">
+        <div class="gas" id="cN2" style="color:var(--n2)"><small>N2</small><span id="vN2">---</span></div>
+        <div class="gas r" id="cCO"><small>CO</small><span id="vCO">---</span><small> ppm</small></div>
+      </div>
+      <table class="md">
+        <tr><th></th><th>PPO2 1,4</th><th>PPO2 1,6</th></tr>
+        <tr><th>MOD (m)</th><td id="vM14">---</td><td id="vM16">---</td></tr>
+        <tr><th>END (m)</th><td id="vE14">---</td><td id="vE16">---</td></tr>
+      </table>
+      <div class="raw" id="vRaw">mV O2 --- · He --- · T --- / --- °C · P --- mbar</div>
+      <div class="meta"><span id="vBat">Batterie ---</span><span id="vAge">pas de données</span></div>
+      <div class="stale" id="stale">Plus de nouvelles de l'appareil : valeurs remplacées par des tirets.</div>
+    </div>
+    <p class="note">Miroir de l'écran de l'appareil : mêmes valeurs, mêmes « --- », même gris tant que ce n'est pas prêt. Lecture seule : rien ne se règle d'ici.</p>
+  </section>
+
+  <!-- ───────────── ANALYSES ───────────── -->
+  <section id="analyses">
+    <h2>Analyses (MEM)</h2>
+    <p class="note">Les analyses enregistrées par REC. À chaque connexion, l'appli lit celles de l'appareil et en garde une copie dans ce téléphone (visibles même sans l'appareil). MOD et END en mètres, pour PPO2 1,4 / 1,6. « Bouteille de départ » prépare le futur onglet Gonflage.</p>
+    <div id="memList"></div>
+    <p class="note" id="memEmpty">Aucune analyse pour l'instant : connecte l'appareil.</p>
+  </section>
+
+  <!-- ───────────── À VENIR ───────────── -->
+  <section id="bestmix"><div class="panel soonbox"><b>Best Mix — à venir</b><span class="note">PPO2 1,4 / 1,6 et END 30 / 40 m.</span></div></section>
+  <section id="gonflage"><div class="panel soonbox"><b>Gonflage — à venir</b><span class="note">Carte de remplissage en gaz réel (Van der Waals) avec la température.</span><p class="note" id="depInfo"></p></div></section>
+  <section id="prix"><div class="panel soonbox"><b>Prix — à venir</b><span class="note">Coût du gaz avec le fond de bouteille, comme ta page Prix O2.</span></div></section>
+  <section id="courbes"><div class="panel soonbox"><b>Courbes — à venir</b><span class="note">Dérive de la cellule O2 et pression atmosphérique.</span></div></section>
+  <section id="appareil"><div class="panel soonbox"><b>Appareil — à venir</b><span class="note">Infos, date, heure, luminosité, seuil tactile, test buzzer.</span></div></section>
+
+  <footer>
+    <p class="note">Bluetooth : Chrome sur Android ou ordinateur. Les analyses sont gardées uniquement dans ce navigateur : changer de téléphone ou effacer les données du site les efface.</p>
+    <p class="note" style="text-align:center">Gfred70 app</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const APP_VERSION = '0.1.0';
+// UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
+const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
+const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
+const DIRECT = '6f7ed002-7a10-4b1c-9c00-a1b2c3d4e5f0';
+const MEM    = '6f7ed003-7a10-4b1c-9c00-a1b2c3d4e5f0';
+const STALE_MS = 5000;           // sans ligne Direct depuis 5 s -> tirets
+const LS_MEM = 'gfa_mem_v1', LS_DEP = 'gfa_depart_v1';
+const $ = id => document.getElementById(id);
+const dec = new TextDecoder();
+const DEMO = new URLSearchParams(location.search).has('demo');   // ?demo : valeurs inventées, rien n'est enregistré
+
+// ── Stockage local (protégé : la page doit marcher même s'il est bloqué) ──
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function lsSet(k, v){ if(DEMO) return; try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+// ── Onglets ──
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t));
+});
+
+// ── « cle=valeur;...;# » -> objet (complete=true si le # final est là) ──
+function parseLine(txt){
+  const o = {}; let complete = false;
+  for(const part of txt.split(';')){
+    if(part === '#'){ complete = true; break; }
+    const i = part.indexOf('='); if(i > 0) o[part.slice(0, i)] = part.slice(i + 1);
+  }
+  o._complete = complete; return o;
+}
+
+// ── État de connexion ──
+function setChip(state, txt){
+  const c = $('chip'); c.className = 'chip' + (state ? ' ' + state : ''); $('chipTxt').textContent = txt;
+}
+
+// ── DIRECT ──
+let lastDirect = 0;
+const GREY = 'var(--grey)';
+function setTxt(id, v){ $(id).textContent = (v === undefined || v === '') ? '---' : v; }
+function renderDirect(d){
+  lastDirect = Date.now();
+  $('stale').style.display = 'none';
+  const dash = v => (v === undefined || v === '---');
+  setTxt('vO2', d.o2); setTxt('vHe', d.he); setTxt('vN2', d.n2); setTxt('vCO', d.co); setTxt('vTx', d.tx);
+  setTxt('vM14', d.m14); setTxt('vM16', d.m16); setTxt('vE14', d.e14); setTxt('vE16', d.e16);
+  const err = d.err === '1';
+  // Couleurs : comme l'écran (gris si pas prêt, rouge si tirets / alerte O2)
+  $('cO2').style.color = dash(d.o2) || err ? 'var(--red)' : (d.o2r === '1' ? 'var(--o2)' : GREY);
+  $('cO2').classList.toggle('blink', err);
+  $('cHe').style.color = dash(d.he) ? 'var(--red)' : (d.her === '1' ? 'var(--he)' : GREY);
+  $('cN2').style.color = dash(d.n2) ? 'var(--red)' : 'var(--n2)';
+  const cos = parseInt(d.cos, 10);
+  $('cCO').style.color = cos === 0 ? 'var(--ok)' : cos === 1 ? 'var(--warn)' : cos === 2 ? 'var(--red)' : 'var(--red)';
+  $('vTx').style.color = dash(d.tx) ? 'var(--red)' : ((d.o2r === '1' && d.her === '1') ? 'var(--ok)' : GREY);
+  // Repère de référence O2
+  let ref = '';
+  if(!dash(d.o2)){
+    if(d.ref === 'A+O2'){ const a = parseInt(d.age, 10); ref = 'A+O2' + (a >= 0 ? ' · ' + a + ' j' : ''); }
+    else ref = 'air';
+  }
+  $('vRef').textContent = ref; $('vRef').style.color = err ? 'var(--red)' : 'var(--o2)';
+  // Tête de mort + Breath
+  const hyp = d.hyp === '1';
+  $('vSkull').textContent = hyp ? '☠' : '';
+  $('vBreath').innerHTML = hyp ? 'Breath &gt;<br><span>' + (dash(d.br) ? '---' : d.br + ' m') + '</span>' : '';
+  $('vRaw').textContent = 'mV O2 ' + (d.o2mv||'---') + ' · He ' + (d.hemv||'---') + ' · T ' + (d.tm||'---') + ' / ' + (d.tc||'---') + ' °C · P ' + (d.p||'---') + ' mbar';
+  $('vBat').textContent = 'Batterie ' + (d.bat || '---');
+  $('frz').style.display = d.frz === '1' ? 'block' : 'none';
+}
+function blankDirect(){
+  ['vO2','vHe','vN2','vCO','vTx','vM14','vM16','vE14','vE16'].forEach(id => $(id).textContent = '---');
+  ['cO2','cHe','cN2','cCO','vTx'].forEach(id => $(id).style.color = 'var(--red)');
+  $('cO2').classList.remove('blink');
+  $('vRef').textContent = ''; $('vSkull').textContent = ''; $('vBreath').innerHTML = '';
+  $('vRaw').textContent = 'mV O2 --- · He --- · T --- / --- °C · P --- mbar';
+  $('vBat').textContent = 'Batterie ---'; $('frz').style.display = 'none';
+}
+setInterval(() => {
+  if(!lastDirect){ $('vAge').textContent = 'pas de données'; return; }
+  const s = Math.round((Date.now() - lastDirect) / 1000);
+  $('vAge').textContent = 'reçu il y a ' + s + ' s';
+  if(Date.now() - lastDirect > STALE_MS){ blankDirect(); $('stale').style.display = 'block'; }
+}, 1000);
+blankDirect();
+
+// ── ANALYSES (copie locale) ──
+let mems = lsGet(LS_MEM, []);          // [{dt,o2,he,n2,co,m14,m16,e14,e16,seen}]
+let depart = lsGet(LS_DEP, null);
+const memKey = m => [m.dt, m.o2, m.he, m.co].join('|');
+function addMems(list){
+  const have = new Map(mems.map(m => [memKey(m), m]));
+  for(const m of list){ const k = memKey(m); if(!have.has(k)){ have.set(k, m); } }
+  mems = [...have.values()].sort((a, b) => (b.dt || '').localeCompare(a.dt || '')).slice(0, 300);
+  lsSet(LS_MEM, mems); renderMems();
+}
+function renderMems(){
+  const box = $('memList'); box.innerHTML = '';
+  $('memEmpty').style.display = mems.length ? 'none' : 'block';
+  for(const m of mems){
+    const isDep = depart && memKey(depart) === memKey(m);
+    const div = document.createElement('div'); div.className = 'mem' + (isDep ? ' dep' : '');
+    div.innerHTML =
+      '<div class="memtop"><span class="memgas"><span style="color:var(--o2)">' + m.o2 + '</span> / <span style="color:var(--he)">' + m.he + '</span></span>' +
+      '<span class="memdt">' + (m.dt || '---') + '</span></div>' +
+      '<div class="memgrid">' +
+        '<div>N2<b style="color:var(--n2)">' + m.n2 + '</b></div>' +
+        '<div>CO ppm<b>' + m.co + '</b></div>' +
+        '<div>MOD<b>' + m.m14 + ' / ' + m.m16 + '</b></div>' +
+        '<div>END<b>' + m.e14 + ' / ' + m.e16 + '</b></div>' +
+      '</div>';
+    const b = document.createElement('button'); b.className = 'btn ghost small';
+    b.textContent = isDep ? 'Bouteille de départ ✓' : 'Bouteille de départ';
+    b.onclick = () => { depart = isDep ? null : m; lsSet(LS_DEP, depart); renderMems(); };
+    div.appendChild(b);
+    if(isDep){ const s = document.createElement('span'); s.className = 'badge'; s.style.marginLeft = '8px'; s.textContent = 'DÉPART'; div.appendChild(s); }
+    box.appendChild(div);
+  }
+  $('depInfo').textContent = depart ? ('Bouteille de départ choisie : O2 ' + depart.o2 + ' % · He ' + depart.he + ' % (' + (depart.dt || '---') + ').') : '';
+}
+renderMems();
+
+// ── BLUETOOTH ──
+let device = null, chars = {}, gattQ = Promise.resolve(), userDisconnect = false;
+// Une seule opération GATT à la fois (sinon « GATT operation already in progress »)
+function gatt(fn){ const p = gattQ.then(fn, fn); gattQ = p.catch(() => {}); return p; }
+
+async function readMemsFromDevice(){
+  if(!chars.info || !chars.mem) return;
+  const info = parseLine(dec.decode(await gatt(() => chars.info.readValue())));
+  if(info.fw) $('sub').textContent = 'appli v' + APP_VERSION + ' · firmware ' + info.fw;
+  const n = parseInt(info.mem, 10) || 0, got = [];
+  for(let k = 0; k < n; k++){
+    await gatt(() => chars.mem.writeValue(Uint8Array.of(k)));
+    const m = parseLine(dec.decode(await gatt(() => chars.mem.readValue())));
+    if(m.vide !== '1' && m.o2 !== undefined) got.push(m);
+  }
+  addMems(got);
+}
+
+async function onDirect(ev){
+  let d = parseLine(dec.decode(ev.target.value));
+  if(!d._complete){ // notification tronquée (MTU) -> relecture complète
+    try{ d = parseLine(dec.decode(await gatt(() => chars.direct.readValue()))); }catch(e){ return; }
+  }
+  if(d._complete) renderDirect(d);
+}
+function onMemNotify(ev){
+  const t = dec.decode(ev.target.value);
+  if(t.startsWith('rec=')) readMemsFromDevice().catch(() => {});
+}
+
+async function connectGatt(){
+  setChip('busy', 'Connexion…');
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(SVC);
+  chars.info   = await svc.getCharacteristic(INFO);
+  chars.direct = await svc.getCharacteristic(DIRECT);
+  chars.mem    = await svc.getCharacteristic(MEM);
+  await chars.direct.startNotifications();
+  chars.direct.addEventListener('characteristicvaluechanged', onDirect);
+  await chars.mem.startNotifications();
+  chars.mem.addEventListener('characteristicvaluechanged', onMemNotify);
+  setChip('up', 'Connecté');
+  $('connectBtn').textContent = 'Déconnecter';
+  await readMemsFromDevice();
+}
+
+async function onDisconnected(){
+  chars = {}; setChip('', 'Déconnecté'); $('connectBtn').textContent = 'Connecter via Bluetooth';
+  if(userDisconnect || !device) return;
+  // Reconnexion automatique (3 essais), utile si on s'éloigne un instant
+  for(let i = 0; i < 3 && device && !userDisconnect; i++){
+    await new Promise(r => setTimeout(r, 2000));
+    try{ await connectGatt(); return; }catch(e){}
+  }
+  setChip('', 'Déconnecté');
+}
+
+$('connectBtn').onclick = async () => {
+  if(device && device.gatt.connected){ userDisconnect = true; device.gatt.disconnect(); return; }
+  userDisconnect = false;
+  try{
+    if(!device){
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [SVC] }, { namePrefix: 'GfredAnalyzer' }],
+        optionalServices: [SVC]
+      });
+      device.addEventListener('gattserverdisconnected', onDisconnected);
+    }
+    await connectGatt();
+  }catch(e){
+    setChip('', 'Déconnecté');
+    if(e && e.name !== 'NotFoundError') alert('Connexion impossible : ' + (e.message || e));
+  }
+};
+
+if(!navigator.bluetooth){ $('nobt').style.display = 'block'; $('connectBtn').style.display = 'none'; }
+
+// ── Mode démonstration (index.html?demo) : données inventées pour voir la mise
+//    en page sans l'appareil. Jamais actif sans « ?demo » dans l'adresse.
+if(DEMO){
+  setChip('up', 'DÉMO'); $('sub').textContent = 'appli v' + APP_VERSION + ' · DÉMO (valeurs inventées)';
+  let t = 0;
+  setInterval(() => { t++;
+    renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;#'));
+  }, 1000);
+  addMems([
+    parseLine('k=0;n=2;dt=2026-10-18 15:20;o2=18.4;he=45.3;n2=36.3;co=0;m14=66;m16=76;e14=31;e16=37;#'),
+    parseLine('k=1;n=2;dt=2026-10-17 18:02;o2=32.0;he=0.0;n2=68.0;co=0;m14=33;m16=40;e14=26;e16=33;#')
+  ]);
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
