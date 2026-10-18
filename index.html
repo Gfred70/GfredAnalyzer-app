@@ -80,13 +80,26 @@
   .soonbox{text-align:center;padding:28px 14px;}
   .soonbox b{display:block;font-size:17px;margin-bottom:6px;}
   footer{margin-top:22px;}
+  /* ── Où es-tu ? (bouton rouge dans la barre d'onglets) ── */
+  nav button.find{background:var(--red);color:#fff;border-color:var(--red);}
+  nav button.find.ring{animation:ring .6s steps(1) infinite;}
+  @keyframes ring{50%{background:#fff;color:var(--red);}}
+  /* ── Appareil ── */
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;}
+  .kv span{color:var(--mist-dim);}
+  .kv b{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
+  .kv b.ok{color:var(--ok);} .kv b.warn{color:var(--warn);} .kv b.bad{color:var(--red);}
+  .set{margin-top:6px;}
+  .set label{display:flex;justify-content:space-between;font-size:14px;font-weight:600;}
+  .set input[type=range]{width:100%;margin:10px 0 2px;accent-color:var(--o2);}
+  .btn:disabled{opacity:.4;}
 </style>
 </head>
 <body>
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.1.1 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.2.0 · firmware —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
@@ -96,7 +109,8 @@
     <button data-t="gonflage" class="soon">Gonflage</button>
     <button data-t="prix" class="soon">Prix</button>
     <button data-t="courbes" class="soon">Courbes</button>
-    <button data-t="appareil" class="soon">Appareil</button>
+    <button id="findBtn" class="find" type="button">Où es-tu ?</button>
+    <button data-t="appareil">Appareil</button>
   </nav>
 </header>
 
@@ -149,7 +163,39 @@
   <section id="gonflage"><div class="panel soonbox"><b>Gonflage — à venir</b><span class="note">Carte de remplissage en gaz réel (Van der Waals) avec la température.</span><p class="note" id="depInfo"></p></div></section>
   <section id="prix"><div class="panel soonbox"><b>Prix — à venir</b><span class="note">Coût du gaz avec le fond de bouteille, comme ta page Prix O2.</span></div></section>
   <section id="courbes"><div class="panel soonbox"><b>Courbes — à venir</b><span class="note">Dérive de la cellule O2 et pression atmosphérique.</span></div></section>
-  <section id="appareil"><div class="panel soonbox"><b>Appareil — à venir</b><span class="note">Infos, date, heure, luminosité, seuil tactile, test buzzer.</span></div></section>
+  <section id="appareil">
+    <p class="note" id="appNote">Connecte l'appareil (onglet Direct) pour voir sa fiche et le régler.</p>
+    <h2>Fiche</h2>
+    <div class="panel kv" id="infoKv">
+      <span>Date / heure</span><b id="iDt">---</b>
+      <span>Firmware</span><b id="iFw">---</b>
+      <span>Batterie</span><b id="iBat">---</b>
+      <span>Analyses</span><b id="iMem">---</b>
+      <span>Carte SD</span><b id="iSd">---</b>
+      <span>Cellule O2</span><b id="iO2c">---</b>
+      <span>Cellule O2</span><b id="iO2s">---</b>
+      <span>Sonde CO</span><b id="iCo">---</b>
+    </div>
+    <h2>Réglages</h2>
+    <div class="panel">
+      <div class="set">
+        <label>Horloge <span id="phoneTime" class="note"></span></label>
+        <button class="btn" id="timeBtn" disabled>Mettre l'appareil à l'heure du téléphone</button>
+      </div>
+      <div class="set">
+        <label>Luminosité <span id="briVal">---</span></label>
+        <input type="range" id="briRange" min="20" max="255" step="5" disabled>
+        <button class="btn small" id="briBtn" disabled>Envoyer la luminosité</button>
+      </div>
+      <div class="set" style="margin-top:16px">
+        <label>Sensibilité tactile <span id="tsnVal">---</span></label>
+        <input type="range" id="tsnRange" min="20" max="80" step="5" disabled>
+        <button class="btn small" id="tsnBtn" disabled>Envoyer la sensibilité</button>
+      </div>
+      <p class="note" style="margin-top:12px">Chaque réglage demande une confirmation. L'appareil refuse toute valeur hors de ses limites.</p>
+    </div>
+    <p class="note">« Où es-tu ? » fait sonner l'appareil et clignoter son écran (portée Bluetooth : 10 à 30 m). Un appui sur l'écran de l'appareil l'arrête aussi ; sinon il s'arrête seul après 2 minutes.</p>
+  </section>
 
   <footer>
     <p class="note">Bluetooth : Chrome sur Android ou ordinateur. Les analyses sont gardées uniquement dans ce navigateur : changer de téléphone ou effacer les données du site les efface.</p>
@@ -159,12 +205,14 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.1.1';
+const APP_VERSION = '0.2.0';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const DIRECT = '6f7ed002-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const MEM    = '6f7ed003-7a10-4b1c-9c00-a1b2c3d4e5f0';
+const CMD    = '6f7ed004-7a10-4b1c-9c00-a1b2c3d4e5f0';   // firmware 10.17.0+ (réglages + Où es-tu ?)
+const enc = new TextEncoder();
 const STALE_MS = 5000;           // sans ligne Direct depuis 5 s -> tirets
 const LS_MEM = 'gfa_mem_v1', LS_DEP = 'gfa_depart_v1';
 const $ = id => document.getElementById(id);
@@ -177,8 +225,8 @@ function lsSet(k, v){ if(DEMO) return; try{ localStorage.setItem(k, JSON.stringi
 
 // ── Onglets ──
 $('tabs').addEventListener('click', e => {
-  const b = e.target.closest('button'); if(!b) return;
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  const b = e.target.closest('button'); if(!b || !b.dataset.t) return;   // « Où es-tu ? » n'est pas un onglet
+  document.querySelectorAll('nav button[data-t]').forEach(x => x.classList.toggle('on', x === b));
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t));
 });
 
@@ -326,6 +374,7 @@ async function connectGatt(){
   chars.info   = await svc.getCharacteristic(INFO);
   chars.direct = await svc.getCharacteristic(DIRECT);
   chars.mem    = await svc.getCharacteristic(MEM);
+  try{ chars.cmd = await svc.getCharacteristic(CMD); }catch(e){ chars.cmd = null; }   // ancien firmware : pas de réglages
   await chars.direct.startNotifications();
   chars.direct.addEventListener('characteristicvaluechanged', onDirect);
   await chars.mem.startNotifications();
@@ -333,10 +382,11 @@ async function connectGatt(){
   setChip('up', 'Connecté');
   $('connectBtn').textContent = 'Déconnecter';
   await readMemsFromDevice();
+  await readInfo();
 }
 
 async function onDisconnected(){
-  chars = {}; setChip('', 'Déconnecté'); $('connectBtn').textContent = 'Connecter via Bluetooth';
+  chars = {}; setChip('', 'Déconnecté'); renderInfo(null); $('connectBtn').textContent = 'Connecter via Bluetooth';
   if(userDisconnect || !device) return;
   // Reconnexion automatique (3 essais), utile si on s'éloigne un instant
   for(let i = 0; i < 3 && device && !userDisconnect; i++){
@@ -364,6 +414,80 @@ $('connectBtn').onclick = async () => {
   }
 };
 
+// ── APPAREIL : fiche (INFO) + réglages (CMD) + Où es-tu ? ──
+let infoLast = null, briTouched = false, tsnTouched = false;
+function pad(n){ return String(n).padStart(2, '0'); }
+function phoneStamp(){ const d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+function cls(el, c){ el.className = c || ''; }
+function renderInfo(i){
+  infoLast = i;
+  const can = !!(i && (DEMO || chars.cmd));
+  ['timeBtn','briBtn','tsnBtn','briRange','tsnRange'].forEach(id => $(id).disabled = !can);
+  $('appNote').textContent = !i ? "Connecte l'appareil (onglet Direct) pour voir sa fiche et le régler."
+    : (can ? '' : 'Réglages indisponibles : il faut le firmware 10.17.0 ou plus récent.');
+  $('appNote').style.display = $('appNote').textContent ? 'block' : 'none';
+  setTxt('iDt', i && i.dt); setTxt('iFw', i && i.fw); setTxt('iBat', i && i.bat);
+  setTxt('iMem', i && i.mem !== undefined ? i.mem + (i.memmax ? ' / ' + i.memmax : '') : '');
+  setTxt('iSd', i && i.sd); setTxt('iO2c', i && i.o2c); setTxt('iO2s', i && i.o2s); setTxt('iCo', i && i.cos);
+  cls($('iO2c'), i && i.o2c ? (i.o2c === 'OK' ? 'ok' : (i.o2c === '---' ? '' : 'bad')) : '');
+  cls($('iCo'), i && i.cos ? (/EXPIREE/.test(i.cos) ? 'bad' : /bientot/.test(i.cos) ? 'warn' : /OK/.test(i.cos) ? 'ok' : '') : '');
+  if(i && i.bmin){ $('briRange').min = i.bmin; $('briRange').max = i.bmax; }
+  if(i && i.tmin){ $('tsnRange').min = i.tmin; $('tsnRange').max = i.tmax; }
+  if(i && i.bri !== undefined && !briTouched){ $('briRange').value = i.bri; }
+  if(i && i.tsn !== undefined && !tsnTouched){ $('tsnRange').value = i.tsn; }
+  showRanges();
+  setFind(i ? i.find === '1' : false);
+}
+function showRanges(){
+  const on = !$('briRange').disabled;
+  $('briVal').textContent = on ? Math.round($('briRange').value * 100 / 255) + ' %' : '---';
+  $('tsnVal').textContent = on ? $('tsnRange').value + ' / 80' : '---';
+}
+async function readInfo(){
+  if(DEMO || !chars.info) return;
+  try{ renderInfo(parseLine(dec.decode(await gatt(() => chars.info.readValue())))); }catch(e){}
+}
+async function sendCmd(txt){
+  if(DEMO){ return true; }
+  if(!chars.cmd) return false;
+  try{ await gatt(() => chars.cmd.writeValue(enc.encode(txt))); }
+  catch(e){ alert("Envoi impossible : " + (e.message || e)); return false; }
+  setTimeout(readInfo, 400);
+  return true;
+}
+$('briRange').oninput = () => { briTouched = true; showRanges(); };
+$('tsnRange').oninput = () => { tsnTouched = true; showRanges(); };
+$('timeBtn').onclick = async () => {
+  const t = phoneStamp();
+  if(confirm("Mettre l'horloge de l'appareil à " + t + ' ?')) await sendCmd('t=' + t);
+};
+$('briBtn').onclick = async () => {
+  const v = $('briRange').value;
+  if(confirm('Luminosité de l\'appareil à ' + Math.round(v * 100 / 255) + ' % ?') && await sendCmd('bri=' + v)) briTouched = false;
+};
+$('tsnBtn').onclick = async () => {
+  const v = $('tsnRange').value;
+  if(confirm('Sensibilité tactile de l\'appareil à ' + v + ' / 80 ?') && await sendCmd('tsn=' + v)) tsnTouched = false;
+};
+let findOn = false;
+function setFind(on){
+  findOn = on;
+  $('findBtn').textContent = on ? 'Stop' : 'Où es-tu ?';
+  $('findBtn').classList.toggle('ring', on);
+}
+$('findBtn').onclick = async () => {
+  if(!DEMO && !(device && device.gatt.connected)){ alert("Connecte d'abord l'appareil (bouton Connecter, onglet Direct)."); return; }
+  if(!DEMO && !chars.cmd){ alert('Il faut le firmware 10.17.0 ou plus récent.'); return; }
+  const want = !findOn;
+  if(await sendCmd(want ? 'find=1' : 'find=0')) setFind(want);
+};
+setInterval(() => {
+  $('phoneTime').textContent = 'téléphone : ' + phoneStamp().slice(0, 16);
+  if($('appareil').classList.contains('on') || findOn) readInfo();
+}, 3000);
+renderInfo(null);
+
 if(!navigator.bluetooth){ $('nobt').style.display = 'block'; $('connectBtn').style.display = 'none'; }
 
 // ── Mode démonstration (index.html?demo) : données inventées pour voir la mise
@@ -374,6 +498,7 @@ if(DEMO){
   setInterval(() => { t++;
     renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;#'));
   }, 1000);
+  renderInfo(parseLine('app=GfredAnalyzer;fw=10.17.0;proto=2;mem=2;memmax=20;dt=18/10/2026 23:55;bat=4.04V (85%);sd=12.1/14.6 Go;o2c=OK;o2s=Start 1/9/2026;cos=Perim 1/9/28 - OK;bri=160;bmin=20;bmax=255;tsn=70;tmin=20;tmax=80;find=0;#'));
   addMems([
     parseLine('k=0;n=2;dt=2026-10-18 15:20;o2=18.4;he=45.3;n2=36.3;co=0;m14=66;m16=76;e14=31;e16=37;#'),
     parseLine('k=1;n=2;dt=2026-10-17 18:02;o2=32.0;he=0.0;n2=68.0;co=0;m14=33;m16=40;e14=26;e16=33;#')
