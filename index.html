@@ -33,10 +33,9 @@
   .chip.up{color:var(--ok);} .chip.up .dot{background:var(--ok);box-shadow:0 0 8px var(--ok);}
   .chip.busy{color:var(--warn);} .chip.busy .dot{background:var(--warn);animation:pulse 1s infinite;}
   @keyframes pulse{50%{opacity:.3;}}
-  nav{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 10px;max-width:560px;margin:0 auto;scrollbar-width:none;}
-  nav::-webkit-scrollbar{display:none;}
-  nav button{flex:none;background:var(--panel);color:var(--mist-dim);border:1px solid var(--line);border-radius:999px;
-             padding:7px 13px;font:600 13px var(--sans);}
+  nav{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 10px;max-width:560px;margin:0 auto;}
+  nav button{flex:1 0 auto;background:var(--panel);color:var(--mist-dim);border:1px solid var(--line);border-radius:999px;
+             padding:6px 10px;font:600 13px var(--sans);}
   nav button.on{background:var(--o2);color:#06101F;border-color:var(--o2);}
   nav button.soon{opacity:.55;}
   .btn{display:block;width:100%;margin:14px 0;padding:14px;border-radius:12px;border:none;font:700 15px var(--sans);
@@ -62,7 +61,7 @@
   table.md{width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums;}
   table.md td,table.md th{border:1px solid #2a2f38;padding:5px 6px;text-align:center;font-size:15px;font-weight:700;}
   table.md th{color:var(--grey);font-size:12px;font-weight:600;}
-  .raw{color:var(--yellow);font-family:var(--mono);font-size:12px;margin-top:8px;text-align:center;}
+  .raw{color:var(--yellow);font-family:var(--mono);font-size:12px;margin-top:8px;text-align:center;line-height:1.5;white-space:nowrap;}
   .meta{display:flex;justify-content:space-between;color:var(--grey);font-size:12px;margin-top:8px;}
   .frz{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-weight:800;
        font-size:11px;padding:2px 8px;border-radius:6px;display:none;}
@@ -87,7 +86,7 @@
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.1.0 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.1.1 · firmware —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
@@ -130,7 +129,7 @@
         <tr><th>MOD (m)</th><td id="vM14">---</td><td id="vM16">---</td></tr>
         <tr><th>END (m)</th><td id="vE14">---</td><td id="vE16">---</td></tr>
       </table>
-      <div class="raw" id="vRaw">mV O2 --- · He --- · T --- / --- °C · P --- mbar</div>
+      <div class="raw"><div id="vRaw1">mV  O2 ---  ·  He ---</div><div id="vRaw2">T ---/--- °C  ·  P --- mbar</div></div>
       <div class="meta"><span id="vBat">Batterie ---</span><span id="vAge">pas de données</span></div>
       <div class="stale" id="stale">Plus de nouvelles de l'appareil : valeurs remplacées par des tirets.</div>
     </div>
@@ -160,7 +159,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.1.1';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
@@ -228,16 +227,22 @@ function renderDirect(d){
   const hyp = d.hyp === '1';
   $('vSkull').textContent = hyp ? '☠' : '';
   $('vBreath').innerHTML = hyp ? 'Breath &gt;<br><span>' + (dash(d.br) ? '---' : d.br + ' m') + '</span>' : '';
-  $('vRaw').textContent = 'mV O2 ' + (d.o2mv||'---') + ' · He ' + (d.hemv||'---') + ' · T ' + (d.tm||'---') + ' / ' + (d.tc||'---') + ' °C · P ' + (d.p||'---') + ' mbar';
+  setRaw(d.o2mv, d.hemv, d.tm, d.tc, d.p);
   $('vBat').textContent = 'Batterie ' + (d.bat || '---');
   $('frz').style.display = d.frz === '1' ? 'block' : 'none';
+}
+// Ligne jaune (mesures brutes) sur 2 lignes courtes : mV, puis T MD62 / T chambre et pression
+function setRaw(o2mv, hemv, tm, tc, p){
+  const v = x => (x === undefined || x === '') ? '---' : x;
+  $('vRaw1').textContent = 'mV  O2 ' + v(o2mv) + '  ·  He ' + v(hemv);
+  $('vRaw2').textContent = 'T ' + v(tm) + '/' + v(tc) + ' °C  ·  P ' + v(p) + ' mbar';
 }
 function blankDirect(){
   ['vO2','vHe','vN2','vCO','vTx','vM14','vM16','vE14','vE16'].forEach(id => $(id).textContent = '---');
   ['cO2','cHe','cN2','cCO','vTx'].forEach(id => $(id).style.color = 'var(--red)');
   $('cO2').classList.remove('blink');
   $('vRef').textContent = ''; $('vSkull').textContent = ''; $('vBreath').innerHTML = '';
-  $('vRaw').textContent = 'mV O2 --- · He --- · T --- / --- °C · P --- mbar';
+  setRaw();
   $('vBat').textContent = 'Batterie ---'; $('frz').style.display = 'none';
 }
 setInterval(() => {

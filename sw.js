@@ -2,7 +2,7 @@
 // Même stratégie que GfredDream : cache d'abord (démarrage instantané, même
 // sans réseau), mise à jour en tâche de fond quand le réseau répond.
 // Ajout d'un fichier ou nouvelle version : changer CACHE_NAME.
-const CACHE_NAME = 'gfredanalyzer-0.1.0';
+const CACHE_NAME = 'gfredanalyzer-0.1.1';
 const PRECACHE_URLS = [
   './', 'index.html', 'manifest.json', 'favicon.ico',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png'

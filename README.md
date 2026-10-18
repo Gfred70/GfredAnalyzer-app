@@ -8,5 +8,6 @@ Page web installable (Chrome Android), qui marche sans réseau et se connecte
 - Démo sans appareil (valeurs inventées) : https://gfred70.github.io/GfredAnalyzer-app/?demo
 - Firmware nécessaire : v10.16.0 ou plus récent.
 
+v0.1.1 : onglets sur 2 lignes, ligne jaune sur 2 lignes, identifiant d'appli propre.
 v0.1.0 : onglets Direct (miroir de l'écran) et Analyses (MEM). Les autres
 onglets (Best Mix, Gonflage, Prix, Courbes, Appareil) viendront ensuite.
