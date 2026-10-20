@@ -93,21 +93,45 @@
   .set label{display:flex;justify-content:space-between;font-size:14px;font-weight:600;}
   .set input[type=range]{width:100%;margin:10px 0 2px;accent-color:var(--o2);}
   .btn:disabled{opacity:.4;}
+  /* ── Prix / Gonflage ── */
+  .form{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;font-size:14px;}
+  .form label{color:var(--mist);}
+  .form label small{display:block;color:var(--mist-dim);font-size:11.5px;}
+  .form input,.form select{width:96px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mist);
+       font:700 15px var(--sans);padding:7px 8px;text-align:right;}
+  .form select{width:auto;text-align:left;}
+  .form .wide{width:150px;}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .seg button{background:var(--panel2);color:var(--mist-dim);border:none;padding:7px 10px;font:700 13px var(--sans);}
+  .seg button.on{background:var(--o2);color:#06101F;}
+  .res{display:flex;justify-content:space-between;align-items:baseline;background:#000;border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:800;}
+  .res b{font-size:18px;font-variant-numeric:tabular-nums;}
+  .gasgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .gasgrid h3{margin:0 0 8px;font-size:14px;}
+  .step{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--grey);border-radius:12px;padding:12px;margin:10px 0;}
+  .step.o2{border-left-color:var(--o2);} .step.he{border-left-color:var(--he);} .step.air{border-left-color:var(--ok);} .step.bleed{border-left-color:var(--red);}
+  .step .t{font-weight:800;font-size:16px;}
+  .step .big{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin:4px 0;}
+  .step .row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin-top:6px;}
+  .step .row input{width:70px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mist);font:700 15px var(--sans);padding:6px;text-align:right;}
+  .hot{color:var(--warn);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;}
+  .warnbox{background:rgba(255,159,26,.12);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;line-height:1.45;}
+  .errbox{background:rgba(242,58,58,.12);border:1px solid var(--red);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;line-height:1.45;}
 </style>
 </head>
 <body>
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.2.0 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.3.0 · firmware —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
     <button data-t="direct" class="on">Direct</button>
     <button data-t="analyses">Analyses</button>
     <button data-t="bestmix" class="soon">Best Mix</button>
-    <button data-t="gonflage" class="soon">Gonflage</button>
-    <button data-t="prix" class="soon">Prix</button>
+    <button data-t="gonflage">Gonflage</button>
+    <button data-t="prix">Prix</button>
     <button data-t="courbes" class="soon">Courbes</button>
     <button id="findBtn" class="find" type="button">Où es-tu ?</button>
     <button data-t="appareil">Appareil</button>
@@ -153,15 +177,61 @@
   <!-- ───────────── ANALYSES ───────────── -->
   <section id="analyses">
     <h2>Analyses (MEM)</h2>
-    <p class="note">Les analyses enregistrées par REC. À chaque connexion, l'appli lit celles de l'appareil et en garde une copie dans ce téléphone (visibles même sans l'appareil). MOD et END en mètres, pour PPO2 1,4 / 1,6. « Bouteille de départ » prépare le futur onglet Gonflage.</p>
+    <p class="note">Les analyses enregistrées par REC. À chaque connexion, l'appli lit celles de l'appareil et en garde une copie dans ce téléphone (visibles même sans l'appareil). MOD et END en mètres, pour PPO2 1,4 / 1,6. « Bouteille de départ » sert de point de départ à l'onglet Gonflage.</p>
     <div id="memList"></div>
     <p class="note" id="memEmpty">Aucune analyse pour l'instant : connecte l'appareil.</p>
   </section>
 
   <!-- ───────────── À VENIR ───────────── -->
   <section id="bestmix"><div class="panel soonbox"><b>Best Mix — à venir</b><span class="note">PPO2 1,4 / 1,6 et END 30 / 40 m.</span></div></section>
-  <section id="gonflage"><div class="panel soonbox"><b>Gonflage — à venir</b><span class="note">Carte de remplissage en gaz réel (Van der Waals) avec la température.</span><p class="note" id="depInfo"></p></div></section>
-  <section id="prix"><div class="panel soonbox"><b>Prix — à venir</b><span class="note">Coût du gaz avec le fond de bouteille, comme ta page Prix O2.</span></div></section>
+  <!-- ───────────── GONFLAGE ───────────── -->
+  <section id="gonflage">
+    <h2>Bouteille</h2>
+    <div class="panel form">
+      <label>Volume en eau</label><span><input id="gV" inputmode="decimal"> L</span>
+      <label>Température ambiante<small id="gTsrc">à taper, ou prise sur l'analyseur connecté</small></label><span><input id="gT" inputmode="decimal"> °C</span>
+    </div>
+    <h2>Départ</h2>
+    <div class="panel form">
+      <label>Contenu actuel</label>
+      <select id="gStartSel"><option value="vide">Vide (air)</option><option value="dep">Bouteille de départ (Analyses)</option><option value="main">À la main</option></select>
+      <label>O2</label><span><input id="gSo2" inputmode="decimal"> %</span>
+      <label>He</label><span><input id="gShe" inputmode="decimal"> %</span>
+      <label>Pression restante</label><span><input id="gSp" inputmode="decimal"> bar</span>
+    </div>
+    <p class="note" id="depInfo"></p>
+    <h2>Cible</h2>
+    <div class="panel form">
+      <label>O2</label><span><input id="gTo2" inputmode="decimal"> %</span>
+      <label>He</label><span><input id="gThe" inputmode="decimal"> %</span>
+      <label>Pression finale (refroidie)</label><span><input id="gTp" inputmode="decimal"> bar</span>
+      <label>Ordre des gaz</label><span class="seg" id="gOrder"><button data-o="o2,he">O2 → He</button><button data-o="he,o2">He → O2</button></span>
+    </div>
+    <p class="note" id="gTargetInfo"></p>
+    <h2>Sources (B50)</h2>
+    <div class="panel form">
+      <label>B50 O2 maintenant</label><span><input id="gSrcO2" inputmode="decimal"> bar</span>
+      <label>B50 He maintenant</label><span><input id="gSrcHe" inputmode="decimal"> bar</span>
+    </div>
+    <div id="gOut"></div>
+    <p class="note">Calcul en gaz réel (compressibilité des tables du Perry's, comme le logiciel Subsurface), pressions au manomètre. Toujours laisser refroidir puis ANALYSER le mélange avant de plonger : l'analyse fait foi, pas le calcul.</p>
+  </section>
+
+  <!-- ───────────── PRIX ───────────── -->
+  <section id="prix">
+    <h2>Réglages communs</h2>
+    <div class="panel form">
+      <label>TVA (non assujetti)</label><span><input id="pTva" inputmode="decimal"> %</span>
+      <label>Pression mini du booster<small>gaz qui reste dans la B50, payé mais pas utilisable</small></label><span><input id="pMin" inputmode="decimal"> bar</span>
+      <label>Volume d'une B50</label><span><input id="pV" inputmode="decimal"> L</span>
+    </div>
+    <div class="gasgrid">
+      <div class="panel form" id="pO2box"></div>
+      <div class="panel form" id="pHebox"></div>
+    </div>
+    <div id="pOut"></div>
+    <p class="note">Prix Westfalen encodés HORS TVA et hors location, comme sur le site ; l'appli ajoute la TVA. Location : coût fixe tant que la bouteille est chez toi, comptée pour la durée d'une bouteille. Tout est mémorisé dans ce téléphone et reste modifiable.</p>
+  </section>
   <section id="courbes"><div class="panel soonbox"><b>Courbes — à venir</b><span class="note">Dérive de la cellule O2 et pression atmosphérique.</span></div></section>
   <section id="appareil">
     <p class="note" id="appNote">Connecte l'appareil (onglet Direct) pour voir sa fiche et le régler.</p>
@@ -205,7 +275,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.3.0';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
@@ -249,8 +319,12 @@ function setChip(state, txt){
 let lastDirect = 0;
 const GREY = 'var(--grey)';
 function setTxt(id, v){ $(id).textContent = (v === undefined || v === '') ? '---' : v; }
+let lastTb = null, lastPmbar = null;   // pour l'onglet Gonflage (T ambiante, pression atmosphérique)
 function renderDirect(d){
   lastDirect = Date.now();
+  { const t = parseFloat(d.tb); lastTb = isFinite(t) ? t : null;
+    const q = parseFloat(d.p);  lastPmbar = isFinite(q) && q > 800 && q < 1100 ? q : null;
+    if(window.gReady) gAutoTemp(); }
   $('stale').style.display = 'none';
   const dash = v => (v === undefined || v === '---');
   setTxt('vO2', d.o2); setTxt('vHe', d.he); setTxt('vN2', d.n2); setTxt('vCO', d.co); setTxt('vTx', d.tx);
@@ -333,7 +407,8 @@ function renderMems(){
     if(isDep){ const s = document.createElement('span'); s.className = 'badge'; s.style.marginLeft = '8px'; s.textContent = 'DÉPART'; div.appendChild(s); }
     box.appendChild(div);
   }
-  $('depInfo').textContent = depart ? ('Bouteille de départ choisie : O2 ' + depart.o2 + ' % · He ' + depart.he + ' % (' + (depart.dt || '---') + ').') : '';
+  $('depInfo').textContent = depart ? ('Bouteille de départ choisie dans Analyses : O2 ' + depart.o2 + ' % · He ' + depart.he + ' % (' + (depart.dt || '---') + ').') : 'Aucune « bouteille de départ » choisie dans Analyses.';
+  if(window.gReady){ gStartFill(); renderGonflage(); }
 }
 renderMems();
 
@@ -414,6 +489,300 @@ $('connectBtn').onclick = async () => {
   }
 };
 
+// ═══ GfredAnalyzer — moteur de gonflage (gaz réel) ═════════════════════════
+// Compressibilité Z(P) = 1 + C0·P + C1·P² + C2·P³ par gaz (P en bar, ~300 K),
+// coefficients des tables du Perry's Chemical Engineers' Handbook (7e éd.),
+// ajustés par Lubomir I. Ivanov pour le logiciel libre Subsurface
+// (core/gas-model.cpp). Mélange : Z linéaire en fractions molaires.
+// Vérifié contre les bouteilles Westfalen de Fred : B50 He 200 bar → 9,1 m³
+// (annoncé 9,3), B50 O2 300 bar → 15,0 m³ (annoncé 15,0).
+// Les constantes de Van der Waals du livre de Taymans (He b = 0,03412) donnent
+// 7,8 m³ pour la B50 d'He : écartées (voir README).
+const GB = (() => {
+  const R = 0.0831446;                 // L·bar/(mol·K)
+  const AIR = { o2: 0.209, he: 0, n2: 0.791 };
+  const C = {
+    o2: [-7.18092073703e-04, +2.81852572808e-06, -1.50290620492e-09],
+    n2: [-2.19260353292e-04, +2.92844845532e-06, -2.07613482075e-09],
+    he: [+4.87320026468e-04, -8.83632921053e-08, +5.33304543646e-11]
+  };
+  const vm1 = (c, p) => p * c[0] + p * p * c[1] + p * p * p * c[2];
+  const K = t => t + 273.15;
+
+  // Z d'un mélange {o2,he,n2} (fractions qui somment à 1) à P bar
+  function Z(p, x){
+    p = Math.min(Math.max(p, 0), 500);
+    return 1 + x.o2 * vm1(C.o2, p) + x.he * vm1(C.he, p) + x.n2 * vm1(C.n2, p);
+  }
+  // moles dans V litres à P bar, T °C
+  function moles(p, tC, V, x){ return p <= 0 ? 0 : p * V / (Z(p, x) * R * K(tC)); }
+  // pression de n moles (vecteur {o2,he,n2}) dans V litres à T °C
+  function pressure(n, tC, V){
+    const tot = n.o2 + n.he + n.n2;
+    if(tot <= 0) return 0;
+    const x = { o2: n.o2 / tot, he: n.he / tot, n2: n.n2 / tot };
+    const pid = tot * R * K(tC) / V;
+    let p = pid;
+    for(let i = 0; i < 60; i++){ const q = pid * Z(p, x); if(Math.abs(q - p) < 1e-7){ p = q; break; } p = q; }
+    return p;
+  }
+  const mix = (o2, he) => ({ o2, he, n2: 1 - o2 - he });
+  const scale = (x, n) => ({ o2: x.o2 * n, he: x.he * n, n2: x.n2 * n });
+  const add = (a, b) => ({ o2: a.o2 + b.o2, he: a.he + b.he, n2: a.n2 + b.n2 });
+
+  // Plan de gonflage.
+  //  V : volume en eau (L) ; tAmb : température ambiante (°C)
+  //  start : {p, o2, he} (fractions) ; target : {p, o2, he}
+  //  order : ['o2','he','air'] (l'air termine toujours)
+  //  ideal : true -> Z = 1 (gaz parfait, pour comparaison)
+  //  pAtm : pression atmosphérique (bar absolu). Les pressions d'entrée et de
+  //  sortie sont des pressions MANOMÈTRE (relatives) ; les calculs se font en
+  //  absolu (une bouteille « vide » à 0 bar contient encore 1 bar d'air).
+  //  keepAll : true -> jamais de vidange (r = 1), le mélange obtenu s'écarte un peu
+  function plan(V, tAmb, start, target, order, ideal, pAtm, keepAll){
+    pAtm = pAtm || 1.01325;
+    const Zs = ideal ? (() => 1) : Z;
+    const mol = (p, t, x) => p <= 0 ? 0 : p * V / (Zs(p, x) * R * K(t));
+    const pres = n => {
+      const tot = n.o2 + n.he + n.n2; if(tot <= 0) return 0;
+      const x = { o2: n.o2 / tot, he: n.he / tot, n2: n.n2 / tot };
+      const pid = tot * R * K(tAmb) / V; let p = pid;
+      for(let i = 0; i < 60; i++){ const q = pid * Zs(p, x); if(Math.abs(q - p) < 1e-7){ p = q; break; } p = q; }
+      return p;
+    };
+    const xs = mix(start.o2, start.he), xt = mix(target.o2, target.he);
+    let nt = scale(xt, mol(target.p + pAtm, tAmb, xt));
+    const ns = scale(xs, mol(start.p + pAtm, tAmb, xs));
+    if(keepAll){
+      // Pas de vidange : un gaz déjà en excès reste tel quel, les autres sont
+      // réduits pour garder la même quantité totale (même pression finale).
+      const tot = nt.o2 + nt.he + nt.n2;
+      const over = ['o2', 'he', 'n2'].filter(g => ns[g] > nt[g]);
+      if(over.length){
+        const fixed = over.reduce((t, g) => t + ns[g], 0);
+        const rest = ['o2', 'he', 'n2'].filter(g => !over.includes(g));
+        const restT = rest.reduce((t, g) => t + nt[g], 0);
+        const f = restT > 0 ? (tot - fixed) / restT : 0;
+        const m = {}; over.forEach(g => m[g] = ns[g]); rest.forEach(g => m[g] = nt[g] * f);
+        nt = { o2: m.o2, he: m.he, n2: m.n2 };
+      }
+    }
+    // Besoins en fonction de r (fraction du départ gardée) : linéaires en r.
+    //  air  = (tN2 - r·sN2) / 0,791
+    //  He   =  tHe - r·sHe
+    //  O2   =  tO2 - r·sO2 - 0,209·air
+    const k = AIR.o2 / AIR.n2;
+    const A = { air: nt.n2 / AIR.n2, he: nt.he, o2: nt.o2 - k * nt.n2 };
+    const B = { air: ns.n2 / AIR.n2, he: ns.he, o2: ns.o2 - k * ns.n2 };
+    if(A.o2 < -1e-9) return { ok: false, err: 'impossible', msg: "Mélange impossible avec O2, He et air : trop peu d'O2 pour l'azote apporté par l'air." };
+    let r = 1;
+    for(const g of ['air', 'he', 'o2']){
+      if(B[g] > 1e-12 && A[g] - B[g] * r < 0) r = Math.min(r, A[g] / B[g]);
+    }
+    r = keepAll ? 1 : Math.max(0, r);
+    const need = g => Math.max(0, A[g] - B[g] * r);
+    const nAdd = { o2: need('o2'), he: need('he'), air: need('air') };
+    let cur = scale(xs, (ns.o2 + ns.he + ns.n2) * r);
+    const pBleed = r < 1 - 1e-6 ? Math.max(0, pres(cur) - pAtm) : null;
+    const steps = [];
+    const seq = order.filter(g => g !== 'air').concat(['air']);
+    for(const g of seq){
+      const n = nAdd[g];
+      if(n <= 1e-9) continue;
+      const d = g === 'air' ? scale(AIR, n) : (g === 'o2' ? { o2: n, he: 0, n2: 0 } : { o2: 0, he: n, n2: 0 });
+      cur = add(cur, d);
+      steps.push({ gas: g, molesAdded: n, n: { ...cur }, pCold: pres(cur) - pAtm });
+    }
+    return { ok: true, r, pBleed, nTarget: nt, nAdd, steps, start: ns, pAtm };
+  }
+
+  // Pression MANOMÈTRE d'un contenu n à une autre température (lecture « à chaud »)
+  function pressureAt(n, tC, V, pAtm){ return pressure(n, tC, V) - (pAtm || 1.01325); }
+
+  // Litres « normaux » (1,013 bar, 15 °C) d'une quantité de gaz
+  const LITRES_PER_MOL = R * 288.15 / 1.01325;
+
+  return { Z, moles, pressure, pressureAt, plan, mix, AIR, LITRES_PER_MOL, R };
+})();
+
+// ── Nombres : virgule ou point, champ vide = pas de valeur ──
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : NaN; };
+const fr = (x, d) => isFinite(x) ? x.toFixed(d).replace('.', ',') : '---';
+const euro = x => isFinite(x) ? (Math.ceil(x * 100 - 1e-9) / 100).toFixed(2).replace('.', ',') + ' €' : '---';   // arrondi au centime SUPÉRIEUR
+
+// ═══ PRIX ═══
+const LS_PRIX = 'gfa_prix_v1';
+const PRIX_DEF = {
+  tva: '21', min: '50', v: '50',
+  o2: { ht: '54,65', p: '280', loc: '82,20', locMode: 'an', mois: '12' },
+  he: { ht: '410,07', p: '200', loc: '82,20', locMode: 'an', mois: '12' }
+};
+let prix = (() => { const s = lsGet(LS_PRIX, null); if(!s) return JSON.parse(JSON.stringify(PRIX_DEF));
+  return { ...PRIX_DEF, ...s, o2: { ...PRIX_DEF.o2, ...(s.o2 || {}) }, he: { ...PRIX_DEF.he, ...(s.he || {}) } }; })();
+function gasBox(id, g, title){
+  const P = prix[g];
+  $(id).innerHTML = '<h3 style="grid-column:1/3">' + title + '</h3>' +
+    '<label>Prix B50 HT</label><span><input data-g="' + g + '" data-k="ht" inputmode="decimal" class="wide"> €</span>' +
+    '<label>Pression à la livraison</label><span><input data-g="' + g + '" data-k="p" inputmode="decimal"> bar</span>' +
+    '<label>Location</label><span><input data-g="' + g + '" data-k="loc" inputmode="decimal"> €</span>' +
+    '<label></label><span class="seg" data-g="' + g + '"><button data-m="mois">/ mois</button><button data-m="an">/ an</button></span>' +
+    '<label>Une B50 me dure</label><span><input data-g="' + g + '" data-k="mois" inputmode="decimal"> mois</span>';
+  $(id).querySelectorAll('input').forEach(i => { i.value = P[i.dataset.k]; i.oninput = () => { prix[g][i.dataset.k] = i.value; prixSave(); }; });
+  $(id).querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', P.locMode === b.dataset.m);
+    b.onclick = () => { prix[g].locMode = b.dataset.m; gasBox(id, g, title); prixSave(); }; });
+}
+function prixSave(){ lsSet(LS_PRIX, prix); renderPrix(); renderGonflage(); }
+// Coût d'un litre « normal » (1,013 bar, 15 °C) de gaz UTILISABLE (au-dessus du mini booster)
+function prixGaz(g){
+  const P = prix[g], tva = num(prix.tva) / 100, V = num(prix.v), pmin = num(prix.min);
+  const x = g === 'o2' ? GB.mix(1, 0) : GB.mix(0, 1);
+  const nFull = GB.moles(num(P.p) + 1.01325, 15, V, x);
+  const nMin  = GB.moles(Math.max(0, pmin) + 1.01325, 15, V, x);
+  const locMois = P.locMode === 'mois' ? num(P.loc) : num(P.loc) / 12;
+  const cout = num(P.ht) * (1 + tva) + locMois * num(P.mois);
+  const litres = (nFull - nMin) * GB.LITRES_PER_MOL;
+  return { cout, m3Full: nFull * GB.LITRES_PER_MOL / 1000, m3Use: litres / 1000, parL: cout / litres, parMol: cout / ((nFull - nMin)) };
+}
+function renderPrix(){
+  const o = prixGaz('o2'), h = prixGaz('he');
+  const line = (t, r) => '<div class="panel"><b>' + t + '</b>' +
+    '<div class="kv" style="margin-top:8px"><span>Coût d\'une bouteille (gaz TVAC + location)</span><b>' + euro(r.cout) + '</b>' +
+    '<span>Contenu à la livraison</span><b>' + fr(r.m3Full, 2) + ' m³</b>' +
+    '<span>Utilisable (au-dessus du mini booster)</span><b>' + fr(r.m3Use, 2) + ' m³</b></div>' +
+    '<div class="res"><span>Prix du litre utilisable</span><b>' + fr(r.parL * 100, 3) + ' c€</b></div>' +
+    '<div class="res" style="margin-top:6px"><span>soit par m³</span><b>' + euro(r.parL * 1000) + '</b></div></div>';
+  $('pOut').innerHTML = line('Oxygène', o) + line('Hélium', h);
+}
+function initPrix(){
+  ['tva','min','v'].forEach(k => { const i = $('p' + k[0].toUpperCase() + k.slice(1)); i.value = prix[k]; i.oninput = () => { prix[k] = i.value; prixSave(); }; });
+  gasBox('pO2box', 'o2', 'Oxygène (Divox O 100)');
+  gasBox('pHebox', 'he', 'Hélium (Divox He 100)');
+  renderPrix();
+}
+
+// ═══ GONFLAGE ═══
+const LS_GONF = 'gfa_gonf_v1';
+const GONF_DEF = { V: '12', T: '15', start: 'vide', So2: '20,9', She: '0', Sp: '0', To2: '18', The: '45', Tp: '200',
+                   order: 'o2,he', srcO2: '200', srcHe: '150', tHot: {} };
+let gonf = { ...GONF_DEF, ...(lsGet(LS_GONF, {}) || {}) };
+let gTempTouched = false;
+const HOT_DEF = { o2: 5, he: 15, air: 20 };     // °C au-dessus de l'ambiante, valeurs de départ modifiables
+const GAS_NAME = { o2: 'Oxygène', he: 'Hélium', air: 'Air (top-off)' };
+const GAS_RATE = { o2: '5 bar/min max', he: '7 bar/min max', air: "jusqu'à 40 bar/min" };   // IANTD
+function gSave(){ lsSet(LS_GONF, gonf); }
+function gAutoTemp(){
+  if(lastTb !== null && !gTempTouched && $('gT')){ $('gT').value = fr(lastTb, 1); gonf.T = $('gT').value;
+    $('gTsrc').textContent = "prise sur l'analyseur (capteur de pression)"; renderGonflage(); }
+}
+function gStartFill(){
+  const sel = gonf.start;
+  const ro = sel !== 'main';
+  ['gSo2','gShe'].forEach(id => $(id).readOnly = ro);
+  if(sel === 'vide'){ $('gSo2').value = '20,9'; $('gShe').value = '0'; $('gSp').value = '0'; }
+  if(sel === 'dep'){
+    if(depart){ $('gSo2').value = String(depart.o2).replace('.', ','); $('gShe').value = String(depart.he).replace('.', ','); }
+    else { $('gSo2').value = ''; $('gShe').value = ''; }
+  }
+  if(sel === 'main'){ $('gSo2').value = gonf.So2; $('gShe').value = gonf.She; }
+  if(sel !== 'vide') $('gSp').value = gonf.Sp;
+}
+function initGonflage(){
+  const map = { gV: 'V', gT: 'T', gSo2: 'So2', gShe: 'She', gSp: 'Sp', gTo2: 'To2', gThe: 'The', gTp: 'Tp', gSrcO2: 'srcO2', gSrcHe: 'srcHe' };
+  for(const [id, k] of Object.entries(map)){
+    const i = $(id); i.value = gonf[k];
+    i.oninput = () => { if(id === 'gT') gTempTouched = true;
+      if(!(gonf.start !== 'main' && (id === 'gSo2' || id === 'gShe'))) gonf[k] = i.value;
+      gSave(); renderGonflage(); };
+  }
+  $('gStartSel').value = gonf.start;
+  $('gStartSel').onchange = () => { gonf.start = $('gStartSel').value; gSave(); gStartFill(); renderGonflage(); };
+  $('gOrder').querySelectorAll('button').forEach(b => b.onclick = () => { gonf.order = b.dataset.o; gSave(); renderGonflage(); });
+  window.gReady = true;
+  gStartFill(); renderGonflage();
+}
+function mod(o2, ppo2){ return o2 > 0 ? Math.floor((ppo2 / (o2 / 100) - 1) * 10) : NaN; }
+function endAt(o2, he, d){ const f = (100 - he) / 100; const e = (f * (d / 10 + 1) - 1) * 10; return Math.max(0, Math.round(e)); }
+function renderGonflage(){
+  if(!$('gOut')) return;
+  $('gOrder').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.o === gonf.order));
+  const V = num($('gV').value), T = num($('gT').value);
+  const so2 = num($('gSo2').value), she = num($('gShe').value), sp = num($('gSp').value);
+  const to2 = num($('gTo2').value), the = num($('gThe').value), tp = num($('gTp').value);
+  // info cible
+  if(isFinite(to2) && isFinite(the) && to2 > 0){
+    const m14 = mod(to2, 1.4), m16 = mod(to2, 1.6);
+    $('gTargetInfo').textContent = 'Cible ' + (the > 0 ? 'Tx ' + Math.floor(to2) + '/' + Math.ceil(the) : 'Nx ' + Math.floor(to2)) +
+      ' · MOD ' + m14 + ' m (1,4) / ' + m16 + ' m (1,6) · END à la MOD 1,4 : ' + endAt(to2, the, m14) + ' m';
+  } else $('gTargetInfo').textContent = '';
+  const out = [];
+  const bad = [V, T, so2, she, sp, to2, the, tp].some(x => !isFinite(x));
+  if(bad){ $('gOut').innerHTML = '<p class="note">Remplis toutes les cases pour voir la carte de remplissage.</p>'; return; }
+  if(so2 < 0 || she < 0 || so2 + she > 100 || to2 <= 0 || the < 0 || to2 + the > 100 || tp <= 0 || V <= 0 || sp < 0){
+    $('gOut').innerHTML = '<div class="errbox">Valeurs impossibles : vérifie les % (O2 + He ≤ 100) et les pressions.</div>'; return; }
+  if(sp >= tp){ $('gOut').innerHTML = '<div class="errbox">La pression restante dépasse déjà la pression finale.</div>'; return; }
+  const pAtm = (lastPmbar || 1013.25) / 1000;
+  const order = gonf.order.split(',');
+  const st = { p: sp, o2: so2 / 100, he: she / 100 }, tg = { p: tp, o2: to2 / 100, he: the / 100 };
+  let R = GB.plan(V, T, st, tg, order, false, pAtm);
+  let keep = false;
+  if(R.ok && R.pBleed !== null && sp - R.pBleed < 1){ keep = true; R = GB.plan(V, T, st, tg, order, false, pAtm, true); }   // vidange < 1 bar : on s'en passe
+  const I = GB.plan(V, T, st, tg, order, true, pAtm, keep);
+  if(!R.ok){ $('gOut').innerHTML = '<div class="errbox"><b>Impossible.</b> ' + R.msg + '</div>'; return; }
+  out.push('<h2>Carte de remplissage</h2>');
+  if(R.pBleed !== null){
+    out.push('<div class="step bleed"><div class="t">1. Vidanger d\'abord</div><div class="big">jusqu\'à ' + fr(R.pBleed, 1) + ' bar</div>' +
+      '<div class="note">Le départ contient trop d\'un des gaz pour atteindre la cible. Vidange lente, à l\'extérieur.</div></div>');
+  }
+  const ideal = {}; I.ok && I.steps.forEach(s => ideal[s.gas] = s.pCold);
+  let k = R.pBleed !== null ? 2 : 1;
+  for(const s of R.steps){
+    const dHot = gonf.tHot[s.gas] !== undefined ? num(gonf.tHot[s.gas]) : NaN;
+    const tHot = isFinite(dHot) ? dHot : T + HOT_DEF[s.gas];
+    const pHot = GB.pressureAt(s.n, tHot, V, pAtm);
+    out.push('<div class="step ' + s.gas + '"><div class="t">' + (k++) + '. ' + GAS_NAME[s.gas] + ' <span class="note">(' + GAS_RATE[s.gas] + ')</span></div>' +
+      '<div class="big">jusqu\'à ' + fr(s.pCold, 1) + ' bar</div>' +
+      '<div class="note">pression refroidie, à ' + fr(T, 1) + ' °C' + (ideal[s.gas] !== undefined ? ' · gaz parfait : ' + fr(ideal[s.gas], 1) + ' bar' : '') + '</div>' +
+      '<div class="row"><span>Bouteille maintenant à</span><span><input data-hot="' + s.gas + '" inputmode="decimal" value="' + fr(tHot, 1) + '"> °C</span></div>' +
+      '<div class="row"><span>→ s\'arrêter à chaud à</span><span class="hot">' + fr(pHot, 1) + ' bar</span></div></div>');
+  }
+  // mélange obtenu (vérification)
+  const last = R.steps.length ? R.steps[R.steps.length - 1].n : null;
+  if(last){
+    const t = last.o2 + last.he + last.n2;
+    const gotO2 = 100 * last.o2 / t, gotHe = 100 * last.he / t;
+    const off = Math.abs(gotO2 - to2) > 0.15 || Math.abs(gotHe - the) > 0.15;
+    out.push('<div class="' + (off ? 'warnbox' : 'panel') + '">Mélange obtenu : <b>O2 ' + fr(gotO2, 1) + ' % · He ' + fr(gotHe, 1) + ' %</b>' +
+      (off ? ' (la cible exacte demanderait une vidange de moins d\'1 bar : écart négligeable, l\'analyse tranchera).' : '') + '</div>');
+  }
+  // sources
+  const warn = [];
+  const pmin = num(prix.min), B = num(prix.v);
+  for(const g of ['o2', 'he']){
+    const need = R.nAdd[g]; if(need <= 1e-9) continue;
+    const x = g === 'o2' ? GB.mix(1, 0) : GB.mix(0, 1);
+    const src = num(g === 'o2' ? $('gSrcO2').value : $('gSrcHe').value);
+    if(!isFinite(src)) continue;
+    const have = GB.moles(src + pAtm, T, B, x) - GB.moles(Math.max(0, pmin) + pAtm, T, B, x);
+    const after = GB.pressure({ o2: g === 'o2' ? GB.moles(src + pAtm, T, B, x) - need : 0, he: g === 'he' ? GB.moles(src + pAtm, T, B, x) - need : 0, n2: 0 }, T, B) - pAtm;
+    if(need > have) warn.push('<b>' + GAS_NAME[g] + ' insuffisant</b> : la B50 descendrait sous le mini du booster (' + fr(pmin, 0) + ' bar).');
+    else warn.push('B50 ' + (g === 'o2' ? 'O2' : 'He') + ' après gonflage : environ ' + fr(after, 0) + ' bar.');
+  }
+  if(R.nAdd.o2 > 1e-9) warn.push('<b>O2 pur dans la bouteille</b> : bouteille, robinet et flexibles compatibles O2 obligatoires.');
+  if(to2 < 16) warn.push('<b>Mélange hypoxique</b> (O2 < 16 %) : ne pas respirer en surface.');
+  out.push('<div class="warnbox">' + warn.join('<br>') + '</div>');
+  // coût
+  const po = prixGaz('o2'), ph = prixGaz('he');
+  const cO2 = R.nAdd.o2 * po.parMol, cHe = R.nAdd.he * ph.parMol;
+  const L = GB.LITRES_PER_MOL;
+  out.push('<h2>Coût du gonflage</h2><div class="panel kv">' +
+    '<span>Oxygène : ' + fr(R.nAdd.o2 * L, 0) + ' L</span><b>' + euro(cO2) + '</b>' +
+    '<span>Hélium : ' + fr(R.nAdd.he * L, 0) + ' L</span><b>' + euro(cHe) + '</b>' +
+    '<span>Air</span><b>non compté</b></div>' +
+    '<div class="res"><span>Total gaz (TVAC, location comprise)</span><b>' + euro(cO2 + cHe) + '</b></div>');
+  $('gOut').innerHTML = out.join('');
+  $('gOut').querySelectorAll('input[data-hot]').forEach(i => i.onchange = () => { gonf.tHot[i.dataset.hot] = i.value; gSave(); renderGonflage(); });
+}
+
 // ── APPAREIL : fiche (INFO) + réglages (CMD) + Où es-tu ? ──
 let infoLast = null, briTouched = false, tsnTouched = false;
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -487,6 +856,8 @@ setInterval(() => {
   if($('appareil').classList.contains('on') || findOn) readInfo();
 }, 3000);
 renderInfo(null);
+initPrix();
+initGonflage();
 
 if(!navigator.bluetooth){ $('nobt').style.display = 'block'; $('connectBtn').style.display = 'none'; }
 
@@ -496,7 +867,7 @@ if(DEMO){
   setChip('up', 'DÉMO'); $('sub').textContent = 'appli v' + APP_VERSION + ' · DÉMO (valeurs inventées)';
   let t = 0;
   setInterval(() => { t++;
-    renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;#'));
+    renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;tb=17.8;#'));
   }, 1000);
   renderInfo(parseLine('app=GfredAnalyzer;fw=10.17.0;proto=2;mem=2;memmax=20;dt=18/10/2026 23:55;bat=4.04V (85%);sd=12.1/14.6 Go;o2c=OK;o2s=Start 1/9/2026;cos=Perim 1/9/28 - OK;bri=160;bmin=20;bmax=255;tsn=70;tmin=20;tmax=80;find=0;#'));
   addMems([
