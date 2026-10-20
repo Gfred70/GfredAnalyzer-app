@@ -123,7 +123,7 @@
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.3.0 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.3.1 · firmware —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
@@ -205,7 +205,7 @@
       <label>O2</label><span><input id="gTo2" inputmode="decimal"> %</span>
       <label>He</label><span><input id="gThe" inputmode="decimal"> %</span>
       <label>Pression finale (refroidie)</label><span><input id="gTp" inputmode="decimal"> bar</span>
-      <label>Ordre des gaz</label><span class="seg" id="gOrder"><button data-o="o2,he">O2 → He</button><button data-o="he,o2">He → O2</button></span>
+      <label>Ordre des gaz</label><span class="seg" id="gOrder"><button data-o="he,o2">He → O2</button><button data-o="o2,he">O2 → He</button></span>
     </div>
     <p class="note" id="gTargetInfo"></p>
     <h2>Sources (B50)</h2>
@@ -275,7 +275,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
@@ -663,8 +663,11 @@ function initPrix(){
 // ═══ GONFLAGE ═══
 const LS_GONF = 'gfa_gonf_v1';
 const GONF_DEF = { V: '12', T: '15', start: 'vide', So2: '20,9', She: '0', Sp: '0', To2: '18', The: '45', Tp: '200',
-                   order: 'o2,he', srcO2: '200', srcHe: '150', tHot: {} };
+                   order: 'he,o2', srcO2: '200', srcHe: '150', tHot: {}, v: 2 };
 let gonf = { ...GONF_DEF, ...(lsGet(LS_GONF, {}) || {}) };
+// v0.3.1 — ordre par défaut He → O2 → air (choix de Fred : vider au maximum la B50 d'He
+// en décantant dans une bouteille encore basse) ; une ancienne sauvegarde passe aussi en He → O2.
+if(gonf.v !== 2){ gonf.order = 'he,o2'; gonf.v = 2; }
 let gTempTouched = false;
 const HOT_DEF = { o2: 5, he: 15, air: 20 };     // °C au-dessus de l'ambiante, valeurs de départ modifiables
 const GAS_NAME = { o2: 'Oxygène', he: 'Hélium', air: 'Air (top-off)' };

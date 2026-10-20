@@ -9,6 +9,7 @@ Page web installable (Chrome Android), qui marche sans réseau et se connecte
 - Démo sans appareil (valeurs inventées) : https://gfred70.github.io/GfredAnalyzer-app/?demo
 - Firmware nécessaire : v10.16.0 ou plus récent (v10.17.0 pour l'onglet Appareil et « Où es-tu ? », v10.17.3 pour la température ambiante automatique du Gonflage).
 
+v0.3.1 : ordre de gonflage par défaut He → O2 → air (choix de Fred, pour vider au maximum la B50 d'He).
 v0.3.0 : onglets Prix (prix au litre utilisable, TVAC, location, fond de bouteille) et Gonflage (carte de remplissage
 en gaz réel, pression refroidie et à chaud, vidange, sources B50, coût). Compressibilité : tables du Perry's
 (comme Subsurface), vérifiées sur les B50 Westfalen ; les constantes Van der Waals du livre de Taymans donnent
