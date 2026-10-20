@@ -116,6 +116,28 @@
   .step .row input{width:70px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mist);font:700 15px var(--sans);padding:6px;text-align:right;}
   .hot{color:var(--warn);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;}
   .warnbox{background:rgba(255,159,26,.12);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;line-height:1.45;}
+  /* ── Best Mix ── */
+  table.bm{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+  table.bm th,table.bm td{border:1px solid var(--line);padding:8px 4px;text-align:center;}
+  table.bm th{color:var(--mist-dim);font-size:12px;font-weight:600;}
+  table.bm td{font-weight:800;font-size:17px;}
+  table.bm td small{display:block;font-size:11px;font-weight:600;color:var(--mist-dim);}
+  table.bm td.pick{cursor:pointer;}
+  /* ── Courbes ── */
+  .chartbox{position:relative;background:#000;border:1px solid var(--line);border-radius:12px;padding:6px;margin-top:10px;}
+  .chartbox canvas{display:block;width:100%;height:260px;touch-action:pan-y;}
+  .chartbox .tip{position:absolute;top:8px;left:12px;font:600 12px var(--mono);color:var(--yellow);pointer-events:none;}
+  .chartbox .fs{position:absolute;top:6px;right:6px;background:var(--panel2);color:var(--mist);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:700 12px var(--sans);}
+  .chartbox.full{position:fixed;inset:0;z-index:100;border-radius:0;margin:0;padding:8px;display:flex;flex-direction:column;}
+  .chartbox.full canvas{flex:1;min-height:0;}
+  .chartbox.rot{inset:auto;top:0;left:0;width:100vh;height:100vw;transform-origin:top left;transform:translateX(100vw) rotate(90deg);}
+  @media (orientation: landscape) and (max-height: 520px){
+    #courbes.on .chartbox{position:fixed;inset:0;z-index:100;border-radius:0;margin:0;display:flex;flex-direction:column;}
+    #courbes.on .chartbox canvas{flex:1;min-height:0;}
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .chips button{background:var(--panel2);color:var(--mist-dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font:600 12.5px var(--sans);}
+  .chips button.on{background:var(--o2);color:#06101F;border-color:var(--o2);}
   .errbox{background:rgba(242,58,58,.12);border:1px solid var(--red);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;line-height:1.45;}
 </style>
 </head>
@@ -123,16 +145,16 @@
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.3.1 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.4.0 · firmware —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
     <button data-t="direct" class="on">Direct</button>
     <button data-t="analyses">Analyses</button>
-    <button data-t="bestmix" class="soon">Best Mix</button>
+    <button data-t="bestmix">Best Mix</button>
     <button data-t="gonflage">Gonflage</button>
     <button data-t="prix">Prix</button>
-    <button data-t="courbes" class="soon">Courbes</button>
+    <button data-t="courbes">Courbes</button>
     <button id="findBtn" class="find" type="button">Où es-tu ?</button>
     <button data-t="appareil">Appareil</button>
   </nav>
@@ -183,7 +205,22 @@
   </section>
 
   <!-- ───────────── À VENIR ───────────── -->
-  <section id="bestmix"><div class="panel soonbox"><b>Best Mix — à venir</b><span class="note">PPO2 1,4 / 1,6 et END 30 / 40 m.</span></div></section>
+  <!-- ───────────── BEST MIX ───────────── -->
+  <section id="bestmix">
+    <h2>Meilleur mélange pour une profondeur</h2>
+    <div class="panel form">
+      <label>Profondeur prévue</label><span><input id="bmD" inputmode="decimal"> m</span>
+    </div>
+    <div class="panel"><table class="bm" id="bmGrid"></table>
+      <p class="note" style="margin-top:8px">O2 arrondi vers le bas, He vers le haut (prudent). L'O2 est compté narcotique, comme l'appareil. Touchez un mélange pour le copier dans Vérifier et Gonflage.</p></div>
+    <h2>Vérifier un mélange</h2>
+    <div class="panel form">
+      <label>O2</label><span><input id="bmO2" inputmode="decimal"> %</span>
+      <label>He</label><span><input id="bmHe" inputmode="decimal"> %</span>
+    </div>
+    <div class="panel" id="bmCheck"></div>
+    <button class="btn ghost" id="bmToGonf">Utiliser comme cible dans Gonflage</button>
+  </section>
   <!-- ───────────── GONFLAGE ───────────── -->
   <section id="gonflage">
     <h2>Bouteille</h2>
@@ -232,7 +269,22 @@
     <div id="pOut"></div>
     <p class="note">Prix Westfalen encodés HORS TVA et hors location, comme sur le site ; l'appli ajoute la TVA. Location : coût fixe tant que la bouteille est chez toi, comptée pour la durée d'une bouteille. Tout est mémorisé dans ce téléphone et reste modifiable.</p>
   </section>
-  <section id="courbes"><div class="panel soonbox"><b>Courbes — à venir</b><span class="note">Dérive de la cellule O2 et pression atmosphérique.</span></div></section>
+  <!-- ───────────── COURBES ───────────── -->
+  <section id="courbes">
+    <h2>Courbes</h2>
+    <p class="note">Ouvre un fichier exporté par WiFi (SD Card &gt; Export) : <b>o2_hist.csv</b> (cellule O2, 1 point par jour), <b>press_hist.csv</b> (pression, 1 par heure) ou <b>trend_log.csv</b> (tout, toutes les ~3 s). Lecture par Bluetooth : à venir (il faudra d'abord la carte SD neuve).</p>
+    <button class="btn" id="cvOpen">Ouvrir un fichier CSV</button>
+    <input type="file" id="cvFile" accept=".csv,text/csv,text/plain" style="display:none">
+    <div class="chips" id="cvSeries"></div>
+    <div class="chips" id="cvRange"></div>
+    <div class="chartbox" id="cvBox">
+      <canvas id="cvCanvas"></canvas>
+      <div class="tip" id="cvTip"></div>
+      <button class="fs" id="cvFs" type="button">⤢ Paysage</button>
+    </div>
+    <div class="panel kv" id="cvStats" style="margin-top:10px"></div>
+    <p class="note">Tournez le téléphone : la courbe passe en plein écran paysage. Glissez le doigt sur la courbe pour lire une valeur.</p>
+  </section>
   <section id="appareil">
     <p class="note" id="appNote">Connecte l'appareil (onglet Direct) pour voir sa fiche et le régler.</p>
     <h2>Fiche</h2>
@@ -275,7 +327,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.3.1';
+const APP_VERSION = '0.4.0';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
@@ -786,6 +838,246 @@ function renderGonflage(){
   $('gOut').querySelectorAll('input[data-hot]').forEach(i => i.onchange = () => { gonf.tHot[i.dataset.hot] = i.value; gSave(); renderGonflage(); });
 }
 
+
+// ═══ BEST MIX ═══
+const LS_BM = 'gfa_bm_v1';
+let bm = { d: '60', o2: '18', he: '45', ...(lsGet(LS_BM, {}) || {}) };
+function bmO2(d, ppo2){ const p = d / 10 + 1; return Math.floor(ppo2 / p * 100); }
+function bmHe(d, end){ const p = d / 10 + 1, pe = end / 10 + 1; return Math.min(100, Math.max(0, Math.ceil(100 * (1 - pe / p)))); }
+function mixName(o2, he){ return he > 0 ? (o2 + he >= 100 ? 'Hx ' : 'Tx ') + o2 + '/' + he : (o2 >= 20 && o2 <= 22 ? 'AIR' : 'Nx ' + o2); }
+function renderBestMix(){
+  const d = num($('bmD').value);
+  const g = $('bmGrid');
+  if(!isFinite(d) || d <= 0 || d > 150){ g.innerHTML = '<tr><td>Profondeur entre 1 et 150 m</td></tr>'; }
+  else {
+    let h = '<tr><th></th><th>END 30 m</th><th>END 40 m</th></tr>';
+    for(const pp of [1.4, 1.6]){
+      h += '<tr><th>PPO2 ' + String(pp).replace('.', ',') + '</th>';
+      for(const e of [30, 40]){
+        let o2 = bmO2(d, pp), he = bmHe(d, e);
+        if(o2 > 100) o2 = 100;
+        if(o2 + he > 100) he = 100 - o2;
+        const hyp = o2 < 16;
+        h += '<td class="pick" data-o2="' + o2 + '" data-he="' + he + '">' + mixName(o2, he) +
+             '<small>' + (hyp ? 'hypoxique' : 'O2 ' + o2 + ' · He ' + he) + '</small></td>';
+      }
+      h += '</tr>';
+    }
+    g.innerHTML = h;
+    g.querySelectorAll('td.pick').forEach(td => td.onclick = () => {
+      $('bmO2').value = td.dataset.o2; $('bmHe').value = td.dataset.he; bm.o2 = td.dataset.o2; bm.he = td.dataset.he; lsSet(LS_BM, bm); renderBmCheck(); });
+  }
+  renderBmCheck();
+}
+function renderBmCheck(){
+  const o2 = num($('bmO2').value), he = num($('bmHe').value), d = num($('bmD').value);
+  const c = $('bmCheck');
+  if(!isFinite(o2) || !isFinite(he) || o2 <= 0 || he < 0 || o2 + he > 100){ c.innerHTML = '<p class="note">Entre un O2 et un He valides (O2 + He ≤ 100).</p>'; return; }
+  const m14 = mod(o2, 1.4), m16 = mod(o2, 1.6);
+  const minB = o2 < 16 ? Math.ceil((0.16 / (o2 / 100) - 1) * 10) : 0;
+  let h = '<div class="kv">' +
+    '<span>Mélange</span><b>' + mixName(Math.floor(o2), Math.ceil(he)) + '</b>' +
+    '<span>MOD PPO2 1,4</span><b>' + m14 + ' m</b>' +
+    '<span>MOD PPO2 1,6</span><b>' + m16 + ' m</b>' +
+    '<span>END à la MOD 1,4</span><b>' + endAt(o2, he, m14) + ' m</b>' +
+    '<span>END à la MOD 1,6</span><b>' + endAt(o2, he, m16) + ' m</b>';
+  if(isFinite(d) && d > 0){
+    const pp = o2 / 100 * (d / 10 + 1);
+    h += '<span>À ' + fr(d, 0) + ' m : PPO2</span><b class="' + (pp > 1.6 ? 'bad' : pp > 1.4 ? 'warn' : 'ok') + '">' + fr(pp, 2) + '</b>' +
+         '<span>À ' + fr(d, 0) + ' m : END</span><b>' + endAt(o2, he, d) + ' m</b>';
+  }
+  h += '</div>';
+  if(o2 < 16) h += '<div class="warnbox" style="margin-top:10px"><b>☠ Hypoxique</b> : pas respirable en surface. Breath &gt; ' + minB + ' m (PPO2 0,16).</div>';
+  c.innerHTML = h;
+}
+function initBestMix(){
+  $('bmD').value = bm.d; $('bmO2').value = bm.o2; $('bmHe').value = bm.he;
+  $('bmD').oninput = () => { bm.d = $('bmD').value; lsSet(LS_BM, bm); renderBestMix(); };
+  $('bmO2').oninput = () => { bm.o2 = $('bmO2').value; lsSet(LS_BM, bm); renderBmCheck(); };
+  $('bmHe').oninput = () => { bm.he = $('bmHe').value; lsSet(LS_BM, bm); renderBmCheck(); };
+  $('bmToGonf').onclick = () => {
+    $('gTo2').value = $('bmO2').value; $('gThe').value = $('bmHe').value;
+    gonf.To2 = $('gTo2').value; gonf.The = $('gThe').value; gSave(); renderGonflage();
+    document.querySelector('nav button[data-t=gonflage]').click(); window.scrollTo(0, 0);
+  };
+  renderBestMix();
+}
+
+// ═══ COURBES ═══
+// Fichiers CSV de l'appareil : 1re ligne = titre, 2e = entête « Date_Heure;... »,
+// puis « AAAA/MM/JJ  HH:MM;valeur;... ». Les lignes illisibles (« --- ») sont ignorées.
+const LS_CV = 'gfa_courbes_v1';
+let cv = { file: '', cols: [], rows: [], col: 1, range: 'all' };
+const CV_UNITS = { O2_mV: 'mV', He_mV: 'mV', CO_ppm: 'ppm', T_chambre_C: '°C', T_MD62_C: '°C', P_mbar: 'mbar', Bat_V: 'V' };
+const CV_EOL_MV = 8;   // seuil fin de vie cellule O2 (config.h O2_CELL_EOL_MV)
+function cvParse(text, name){
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  let hi = lines.findIndex(l => /^Date/i.test(l));
+  if(hi < 0) throw new Error("pas d'entête « Date_Heure » : ce n'est pas un fichier de l'appareil");
+  const cols = lines[hi].split(';').map(x => x.trim());
+  const rows = [];
+  for(let i = hi + 1; i < lines.length; i++){
+    const f = lines[i].split(';');
+    const m = /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/.exec(f[0] || '');
+    if(!m) continue;
+    const t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime();
+    const v = f.slice(1).map(x => { const n = parseFloat(String(x).replace(',', '.')); return isFinite(n) ? n : NaN; });
+    rows.push([t, ...v]);
+  }
+  if(!rows.length) throw new Error('aucune ligne datée lisible');
+  rows.sort((a, b) => a[0] - b[0]);
+  return { file: name, cols, rows };
+}
+function cvLoad(obj, persist){
+  cv.file = obj.file; cv.cols = obj.cols; cv.rows = obj.rows;
+  cv.col = Math.min(cv.col, cv.cols.length - 1) || 1;
+  const pi = cv.cols.indexOf('P_mbar'), oi = cv.cols.indexOf('O2_mV');
+  if(cv.cols.length === 2) cv.col = 1; else if(oi > 0 && cv.col < 1) cv.col = oi;
+  if(persist && cv.rows.length <= 6000){ try{ lsSet(LS_CV, { file: cv.file, cols: cv.cols, rows: cv.rows }); }catch(e){} }
+  cvRenderChips(); cvDraw();
+}
+function cvRenderChips(){
+  const s = $('cvSeries'); s.innerHTML = '';
+  cv.cols.slice(1).forEach((c, i) => { const b = document.createElement('button'); b.textContent = c.replace(/_/g, ' ');
+    b.classList.toggle('on', cv.col === i + 1); b.onclick = () => { cv.col = i + 1; cvRenderChips(); cvDraw(); }; s.appendChild(b); });
+  const r = $('cvRange'); r.innerHTML = '';
+  if(!cv.rows.length) return;
+  [['all', 'Tout'], ['365', '1 an'], ['90', '3 mois'], ['30', '30 j'], ['7', '7 j'], ['1', '24 h']].forEach(([k, t]) => {
+    const b = document.createElement('button'); b.textContent = t; b.classList.toggle('on', cv.range === k);
+    b.onclick = () => { cv.range = k; cvRenderChips(); cvDraw(); }; r.appendChild(b); });
+}
+function cvData(){
+  if(!cv.rows.length) return [];
+  const last = cv.rows[cv.rows.length - 1][0];
+  const from = cv.range === 'all' ? -Infinity : last - (+cv.range) * 86400000;
+  const pts = [];
+  for(const r of cv.rows){ if(r[0] >= from && isFinite(r[cv.col])) pts.push([r[0], r[cv.col]]); }
+  // trop de points (trend_log) : min/max par tranche, la forme reste juste
+  const MAXP = 1500;
+  if(pts.length <= MAXP) return pts;
+  const out = [], step = Math.ceil(pts.length / (MAXP / 2));
+  for(let i = 0; i < pts.length; i += step){
+    let mn = pts[i], mx = pts[i];
+    for(let j = i; j < Math.min(i + step, pts.length); j++){ if(pts[j][1] < mn[1]) mn = pts[j]; if(pts[j][1] > mx[1]) mx = pts[j]; }
+    if(mn[0] <= mx[0]) out.push(mn, mx); else out.push(mx, mn);
+  }
+  return out;
+}
+let cvPts = [], cvGeom = null;
+function cvDraw(){
+  const cvs = $('cvCanvas'), box = $('cvBox');
+  // Plein écran (bouton Paysage, ou téléphone tourné) : la courbe prend toute la boîte.
+  const fixed = getComputedStyle(box).position === 'fixed';
+  const W = fixed ? box.clientWidth - 16 : cvs.clientWidth;
+  const H = fixed ? box.clientHeight - 16 : 260;
+  cvs.style.height = H + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  cvs.width = Math.max(10, W * dpr); cvs.height = Math.max(10, H * dpr);
+  const c = cvs.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  cvPts = cvData();
+  const name = cv.cols[cv.col] || '', unit = CV_UNITS[name] || '';
+  $('cvTip').textContent = '';
+  if(cvPts.length < 2){
+    c.fillStyle = '#71839A'; c.font = '14px system-ui'; c.textAlign = 'center';
+    c.fillText(cv.rows.length ? 'Pas assez de points sur cette période' : 'Aucun fichier ouvert', W / 2, H / 2);
+    $('cvStats').innerHTML = ''; cvGeom = null; return;
+  }
+  let t0 = cvPts[0][0], t1 = cvPts[cvPts.length - 1][0];
+  let v0 = Math.min(...cvPts.map(p => p[1])), v1 = Math.max(...cvPts.map(p => p[1]));
+  const isO2 = name === 'O2_mV' && cv.cols.length === 2;
+  if(isO2){ v0 = Math.min(v0, CV_EOL_MV - 0.5); }
+  if(v1 - v0 < 1e-6){ v0 -= 1; v1 += 1; }
+  const pad = (v1 - v0) * 0.08; v0 -= pad; v1 += pad;
+  if(t1 === t0) t1 = t0 + 60000;
+  const L = 46, Rm = 10, T = 22, B = 26;
+  const X = t => L + (t - t0) / (t1 - t0) * (W - L - Rm), Y = v => T + (v1 - v) / (v1 - v0) * (H - T - B);
+  cvGeom = { X, Y, L, Rm, t0, t1, W };
+  // grille + axes
+  c.strokeStyle = '#24344C'; c.lineWidth = 1; c.fillStyle = '#71839A'; c.font = '11px system-ui';
+  c.textAlign = 'right'; c.textBaseline = 'middle';
+  for(let i = 0; i <= 4; i++){ const v = v0 + (v1 - v0) * i / 4, y = Y(v);
+    c.beginPath(); c.moveTo(L, y); c.lineTo(W - Rm, y); c.stroke(); c.fillText(v.toFixed(Math.abs(v1 - v0) < 5 ? 2 : 1).replace('.', ','), L - 4, y); }
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  const span = t1 - t0;
+  for(let i = 0; i <= 4; i++){ const t = t0 + span * i / 4, d = new Date(t);
+    const lab = span < 2 * 86400000 ? String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : d.getDate() + '/' + (d.getMonth() + 1);
+    c.fillText(lab, X(t), H - B + 6); }
+  // seuil fin de vie O2
+  if(isO2){ const y = Y(CV_EOL_MV); c.strokeStyle = '#F23A3A'; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(L, y); c.lineTo(W - Rm, y); c.stroke(); c.setLineDash([]);
+    c.fillStyle = '#F23A3A'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText('fin de vie ' + CV_EOL_MV + ' mV', L + 4, y - 2); }
+  // courbe
+  c.strokeStyle = name.indexOf('O2') >= 0 ? '#5AA1EE' : name.indexOf('He') >= 0 ? '#B59118' : name.indexOf('CO') >= 0 ? '#2BD45A' : '#FFE600';
+  c.lineWidth = 2; c.beginPath(); cvPts.forEach((p, i) => { const x = X(p[0]), y = Y(p[1]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
+  c.fillStyle = '#D8E1EA'; c.textAlign = 'left'; c.textBaseline = 'top'; c.font = '600 12px system-ui';
+  c.fillText(name.replace(/_/g, ' ') + (cv.file ? '  ·  ' + cv.file : ''), L, 4);
+  // statistiques + tendance
+  const vals = cvPts.map(p => p[1]);
+  let st = '<span>Points</span><b>' + cvPts.length + '</b>' +
+    '<span>Du</span><b>' + new Date(t0).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' }) + '</b>' +
+    '<span>Au</span><b>' + new Date(t1).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' }) + '</b>' +
+    '<span>Min / max</span><b>' + fr(Math.min(...vals), 2) + ' / ' + fr(Math.max(...vals), 2) + ' ' + unit + '</b>' +
+    '<span>Dernière valeur</span><b>' + fr(vals[vals.length - 1], 2) + ' ' + unit + '</b>';
+  if(isO2 && cvPts.length >= 5 && span > 7 * 86400000){
+    const n = cvPts.length, mt = cvPts.reduce((a, p) => a + p[0], 0) / n, mv = vals.reduce((a, v) => a + v, 0) / n;
+    let sxy = 0, sxx = 0; cvPts.forEach(p => { sxy += (p[0] - mt) * (p[1] - mv); sxx += (p[0] - mt) ** 2; });
+    const slope = sxx > 0 ? sxy / sxx : 0, perMonth = slope * 30 * 86400000;
+    st += '<span>Tendance</span><b>' + (perMonth >= 0 ? '+' : '') + fr(perMonth, 2) + ' mV / mois</b>';
+    const lastV = vals[n - 1];
+    if(perMonth < -0.01 && lastV > CV_EOL_MV){ const months = (lastV - CV_EOL_MV) / -perMonth; st += '<span>Fin de vie (8 mV) dans</span><b>≈ ' + fr(months, 0) + ' mois</b>'; }
+  }
+  $('cvStats').innerHTML = st;
+}
+function cvTipAt(clientX, clientY){
+  if(!cvGeom || !cvPts.length) return;
+  const r = $('cvCanvas').getBoundingClientRect(), rot = $('cvBox').classList.contains('rot');
+  const x = rot ? (clientY - r.top) : (clientX - r.left);
+  const t = cvGeom.t0 + (x - cvGeom.L) / (cvGeom.W - cvGeom.L - cvGeom.Rm) * (cvGeom.t1 - cvGeom.t0);
+  let best = cvPts[0]; for(const p of cvPts) if(Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p;
+  const name = cv.cols[cv.col] || '';
+  $('cvTip').textContent = new Date(best[0]).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' }) + '  ' + fr(best[1], 2) + ' ' + (CV_UNITS[name] || '');
+}
+async function cvFull(){
+  const box = $('cvBox');
+  if(box.classList.contains('full')){
+    box.classList.remove('full', 'rot'); $('cvFs').textContent = '⤢ Paysage';
+    try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
+    try{ if(document.fullscreenElement) await document.exitFullscreen(); }catch(e){}
+    cvDraw(); return;
+  }
+  box.classList.add('full'); $('cvFs').textContent = '✕ Fermer';
+  let locked = false;
+  try{
+    await document.documentElement.requestFullscreen();   // la page entière (un élément plein écran ne peut pas être tourné)
+    await Promise.race([screen.orientation.lock('landscape'), new Promise((_, no) => setTimeout(() => no(new Error('délai')), 800))]);
+    locked = true;
+  }catch(e){}
+  // Pas de verrouillage possible (ou accepté sans effet) : si l'écran est resté
+  // en portrait, on tourne la courbe nous-mêmes.
+  setTimeout(() => {
+    if(box.classList.contains('full') && window.innerHeight > window.innerWidth) box.classList.add('rot');
+    cvDraw();
+  }, locked ? 500 : 50);
+}
+function initCourbes(){
+  $('cvOpen').onclick = () => $('cvFile').click();
+  $('cvFile').onchange = async () => {
+    const f = $('cvFile').files[0]; if(!f) return;
+    try{ cvLoad(cvParse(await f.text(), f.name), true); }catch(e){ alert('Fichier illisible : ' + e.message); }
+    $('cvFile').value = '';
+  };
+  $('cvFs').onclick = cvFull;
+  const cvs = $('cvCanvas');
+  cvs.addEventListener('pointerdown', e => cvTipAt(e.clientX, e.clientY));
+  cvs.addEventListener('pointermove', e => { if(e.buttons || e.pointerType === 'touch') cvTipAt(e.clientX, e.clientY); });
+  const redraw = () => { if($('courbes').classList.contains('on')) requestAnimationFrame(() => requestAnimationFrame(cvDraw)); };
+  window.addEventListener('resize', redraw);
+  window.addEventListener('orientationchange', () => setTimeout(redraw, 200));
+  document.addEventListener('fullscreenchange', () => { if(!document.fullscreenElement && $('cvBox').classList.contains('full') && !$('cvBox').classList.contains('rot')){ $('cvBox').classList.remove('full'); $('cvFs').textContent = '⤢ Paysage'; } setTimeout(cvDraw, 150); });
+  document.querySelector('nav button[data-t=courbes]').addEventListener('click', () => setTimeout(cvDraw, 30));
+  const saved = lsGet(LS_CV, null);
+  if(saved && saved.rows && saved.rows.length) cvLoad(saved, false); else { cvRenderChips(); }
+}
+
 // ── APPAREIL : fiche (INFO) + réglages (CMD) + Où es-tu ? ──
 let infoLast = null, briTouched = false, tsnTouched = false;
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -861,6 +1153,8 @@ setInterval(() => {
 renderInfo(null);
 initPrix();
 initGonflage();
+initBestMix();
+initCourbes();
 
 if(!navigator.bluetooth){ $('nobt').style.display = 'block'; $('connectBtn').style.display = 'none'; }
 
@@ -872,6 +1166,11 @@ if(DEMO){
   setInterval(() => { t++;
     renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;tb=17.8;#'));
   }, 1000);
+  { // courbe de démonstration : cellule O2, 1 point par jour sur 6 mois
+    const rows = [], t0 = Date.now() - 180 * 86400000;
+    for(let i = 0; i < 180; i++) rows.push([t0 + i * 86400000, 10.6 - i * 0.004 + Math.sin(i / 9) * 0.08]);
+    cvLoad({ file: 'o2_hist.csv (démo)', cols: ['Date_Heure', 'O2_mV'], rows }, false);
+  }
   renderInfo(parseLine('app=GfredAnalyzer;fw=10.17.0;proto=2;mem=2;memmax=20;dt=18/10/2026 23:55;bat=4.04V (85%);sd=12.1/14.6 Go;o2c=OK;o2s=Start 1/9/2026;cos=Perim 1/9/28 - OK;bri=160;bmin=20;bmax=255;tsn=70;tmin=20;tmax=80;find=0;#'));
   addMems([
     parseLine('k=0;n=2;dt=2026-10-18 15:20;o2=18.4;he=45.3;n2=36.3;co=0;m14=66;m16=76;e14=31;e16=37;#'),
