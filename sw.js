@@ -9,7 +9,7 @@
 //  • à l'installation, tout est téléchargé en contournant le cache HTTP
 //    (cache:'reload') : une nouvelle version ne recopie plus une vieille page.
 // Ajout d'un fichier ou nouvelle version : changer CACHE_NAME.
-const CACHE_NAME = 'gfredanalyzer-0.5.2';
+const CACHE_NAME = 'gfredanalyzer-0.5.3';
 const PRECACHE_URLS = [
   './', 'index.html', 'manifest.json', 'favicon.ico',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png'

@@ -17,6 +17,7 @@ v0.5.0 : courbes lues directement par Bluetooth (Cellule O2, Pression, Tendance 
 prix : O2 et He l'un au-dessus de l'autre sur téléphone.
 v0.5.1 : prix, les montants (« 148,33 € ») restent sur une seule ligne.
 v0.5.2 : mises à jour visibles dès la 1re ouverture (page prise sur le réseau d'abord, copie hors ligne) ; plus de blocage sur une vieille version.
+v0.5.3 : en-tête « appli : vX · firmware : vY » juste dès l'ouverture (l'ancien « v0.4.0 » était écrit en dur).
 v0.3.1 : ordre de gonflage par défaut He → O2 → air (choix de Fred, pour vider au maximum la B50 d'He).
 v0.3.0 : onglets Prix (prix au litre utilisable, TVAC, location, fond de bouteille) et Gonflage (carte de remplissage
 en gaz réel, pression refroidie et à chaud, vidange, sources B50, coût). Compressibilité : tables du Perry's

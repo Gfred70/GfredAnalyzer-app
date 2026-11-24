@@ -151,7 +151,7 @@
 <header>
   <div class="headrow">
     <img src="icon-192.png" alt="">
-    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli v0.4.0 · firmware —</small></div>
+    <div class="brand"><b>GfredAnalyzer</b><small id="sub">appli : — · firmware : —</small></div>
     <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">Déconnecté</span></span>
   </div>
   <nav id="tabs">
@@ -339,7 +339,10 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.5.2';
+const APP_VERSION = '0.5.3';
+// v0.5.3 : en-tête « appli : vX · firmware : vY » écrit dès l'ouverture (avant, « v0.4.0 » était écrit en dur et ne changeait qu'à la connexion)
+function setSub(fw, extra){ document.getElementById('sub').textContent = 'appli : v' + APP_VERSION + ' · firmware : ' + (fw ? 'v' + fw : '—') + (extra ? ' · ' + extra : ''); }
+setSub();
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
@@ -485,7 +488,7 @@ function gatt(fn){ const p = gattQ.then(fn, fn); gattQ = p.catch(() => {}); retu
 async function readMemsFromDevice(){
   if(!chars.info || !chars.mem) return;
   const info = parseLine(dec.decode(await gatt(() => chars.info.readValue())));
-  if(info.fw) $('sub').textContent = 'appli v' + APP_VERSION + ' · firmware ' + info.fw;
+  if(info.fw) setSub(info.fw);
   const n = parseInt(info.mem, 10) || 0, got = [];
   for(let k = 0; k < n; k++){
     await gatt(() => chars.mem.writeValue(Uint8Array.of(k)));
@@ -1238,7 +1241,7 @@ if(!navigator.bluetooth){ $('nobt').style.display = 'block'; $('connectBtn').sty
 // ── Mode démonstration (index.html?demo) : données inventées pour voir la mise
 //    en page sans l'appareil. Jamais actif sans « ?demo » dans l'adresse.
 if(DEMO){
-  setChip('up', 'DÉMO'); $('sub').textContent = 'appli v' + APP_VERSION + ' · DÉMO (valeurs inventées)';
+  setChip('up', 'DÉMO'); setSub('', 'DÉMO');
   let t = 0;
   setInterval(() => { t++;
     renderDirect(parseLine('o2=18.4;he=45.3;n2=36.3;co=' + (t % 20 < 15 ? 0 : 4) + ';tx=Tx 18/46;m14=66;m16=76;e14=31;e16=37;tc=21.5;tm=34.1;p=996.5;o2mv=8.9;hemv=-72.1;bat=4.04V (85%);o2r=1;her=' + (t > 3 ? 1 : 0) + ';cos=' + (t % 20 < 15 ? 0 : 1) + ';hyp=0;br=---;frz=0;ref=A+O2;age=12;err=0;tb=17.8;#'));
