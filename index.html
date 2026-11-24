@@ -89,6 +89,7 @@
   .kv span{color:var(--mist-dim);}
   .kv b{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
   .kv b.ok{color:var(--ok);} .kv b.warn{color:var(--warn);} .kv b.bad{color:var(--red);}
+  #pOut .kv b{white-space:nowrap;}   /* v0.5.1 : « 148,33 € » sur une seule ligne */
   .set{margin-top:6px;}
   .set label{display:flex;justify-content:space-between;font-size:14px;font-weight:600;}
   .set input[type=range]{width:100%;margin:10px 0 2px;accent-color:var(--o2);}
@@ -338,7 +339,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
