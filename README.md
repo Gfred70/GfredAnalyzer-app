@@ -7,11 +7,14 @@ Page web installable (Chrome Android), qui marche sans réseau et se connecte
 
 - Adresse : https://gfred70.github.io/GfredAnalyzer-app/
 - Démo sans appareil (valeurs inventées) : https://gfred70.github.io/GfredAnalyzer-app/?demo
-- Firmware nécessaire : v10.16.0 ou plus récent (v10.17.0 pour l'onglet Appareil et « Où es-tu ? », v10.17.3 pour la température ambiante automatique du Gonflage).
+- Firmware nécessaire : v10.16.0 ou plus récent (v10.17.0 pour l'onglet Appareil et « Où es-tu ? », v10.17.3 pour la température ambiante automatique du Gonflage, v10.17.6 pour les courbes par Bluetooth).
 
 v0.4.0 : onglets Best Mix (grille PPO2 1,4 / 1,6 × END 30 / 40 m, vérification d'un mélange, envoi vers Gonflage)
 et Courbes (fichiers CSV de l'export WiFi : o2_hist, press_hist, trend_log ; tendance et fin de vie de la cellule ;
-plein écran paysage). Courbes par Bluetooth : à venir.
+plein écran paysage).
+
+v0.5.0 : courbes lues directement par Bluetooth (Cellule O2, Pression, Tendance des dernières heures ; firmware 10.17.6),
+prix : O2 et He l'un au-dessus de l'autre sur téléphone.
 v0.3.1 : ordre de gonflage par défaut He → O2 → air (choix de Fred, pour vider au maximum la B50 d'He).
 v0.3.0 : onglets Prix (prix au litre utilisable, TVAC, location, fond de bouteille) et Gonflage (carte de remplissage
 en gaz réel, pression refroidie et à chaud, vidange, sources B50, coût). Compressibilité : tables du Perry's

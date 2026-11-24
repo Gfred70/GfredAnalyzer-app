@@ -107,6 +107,7 @@
   .res{display:flex;justify-content:space-between;align-items:baseline;background:#000;border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:800;}
   .res b{font-size:18px;font-variant-numeric:tabular-nums;}
   .gasgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width: 640px){ .gasgrid{grid-template-columns:1fr;} }   /* v0.5.0 : téléphone = O2 au-dessus de He */
   .gasgrid h3{margin:0 0 8px;font-size:14px;}
   .step{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--grey);border-radius:12px;padding:12px;margin:10px 0;}
   .step.o2{border-left-color:var(--o2);} .step.he{border-left-color:var(--he);} .step.air{border-left-color:var(--ok);} .step.bleed{border-left-color:var(--red);}
@@ -138,6 +139,10 @@
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .chips button{background:var(--panel2);color:var(--mist-dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font:600 12.5px var(--sans);}
   .chips button.on{background:var(--o2);color:#06101F;border-color:var(--o2);}
+  .blerow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+  .blerow button{background:var(--panel2);color:var(--mist);border:1px solid var(--line);border-radius:10px;padding:10px 4px;font:700 13.5px var(--sans);}
+  .blerow button:disabled{opacity:.4;}
+  #cvProg{margin-top:8px;font:600 13px var(--sans);color:var(--yellow);min-height:18px;}
   .errbox{background:rgba(242,58,58,.12);border:1px solid var(--red);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;line-height:1.45;}
 </style>
 </head>
@@ -272,7 +277,13 @@
   <!-- ───────────── COURBES ───────────── -->
   <section id="courbes">
     <h2>Courbes</h2>
-    <p class="note">Ouvre un fichier exporté par WiFi (SD Card &gt; Export) : <b>o2_hist.csv</b> (cellule O2, 1 point par jour), <b>press_hist.csv</b> (pression, 1 par heure) ou <b>trend_log.csv</b> (tout, toutes les ~3 s). Lecture par Bluetooth : à venir (il faudra d'abord la carte SD neuve).</p>
+    <p class="note">Lire depuis l'appareil (Bluetooth, connecté) : <b>Cellule O2</b> (1 point par jour), <b>Pression</b> (1 par heure) ou <b>Tendance</b> (tout, toutes les ~3 s : seulement les dernières heures). Le fichier complet reste disponible par l'export WiFi (SD Card &gt; Export) et s'ouvre avec le bouton du bas.</p>
+    <div class="blerow">
+      <button id="cvBleO2" type="button">Cellule O2</button>
+      <button id="cvBlePress" type="button">Pression</button>
+      <button id="cvBleTrend" type="button">Tendance</button>
+    </div>
+    <div id="cvProg"></div>
     <button class="btn" id="cvOpen">Ouvrir un fichier CSV</button>
     <input type="file" id="cvFile" accept=".csv,text/csv,text/plain" style="display:none">
     <div class="chips" id="cvSeries"></div>
@@ -327,13 +338,14 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 // UUID : doivent correspondre exactement à ble_service.h (firmware 10.16.0+)
 const SVC    = '6f7ed000-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const INFO   = '6f7ed001-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const DIRECT = '6f7ed002-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const MEM    = '6f7ed003-7a10-4b1c-9c00-a1b2c3d4e5f0';
 const CMD    = '6f7ed004-7a10-4b1c-9c00-a1b2c3d4e5f0';   // firmware 10.17.0+ (réglages + Où es-tu ?)
+const FILE   = '6f7ed005-7a10-4b1c-9c00-a1b2c3d4e5f0';   // firmware 10.17.6+ (courbes par Bluetooth)
 const enc = new TextEncoder();
 const STALE_MS = 5000;           // sans ligne Direct depuis 5 s -> tirets
 const LS_MEM = 'gfa_mem_v1', LS_DEP = 'gfa_depart_v1';
@@ -502,10 +514,16 @@ async function connectGatt(){
   chars.direct = await svc.getCharacteristic(DIRECT);
   chars.mem    = await svc.getCharacteristic(MEM);
   try{ chars.cmd = await svc.getCharacteristic(CMD); }catch(e){ chars.cmd = null; }   // ancien firmware : pas de réglages
+  try{ chars.file = await svc.getCharacteristic(FILE); }catch(e){ chars.file = null; } // avant 10.17.6 : pas de courbes par Bluetooth
   await chars.direct.startNotifications();
   chars.direct.addEventListener('characteristicvaluechanged', onDirect);
   await chars.mem.startNotifications();
   chars.mem.addEventListener('characteristicvaluechanged', onMemNotify);
+  if(chars.file){
+    try{ await chars.file.startNotifications(); chars.file.addEventListener('characteristicvaluechanged', onFileNotify); }
+    catch(e){ chars.file = null; }
+  }
+  cvBleUpdate();
   setChip('up', 'Connecté');
   $('connectBtn').textContent = 'Déconnecter';
   await readMemsFromDevice();
@@ -513,7 +531,9 @@ async function connectGatt(){
 }
 
 async function onDisconnected(){
-  chars = {}; setChip('', 'Déconnecté'); renderInfo(null); $('connectBtn').textContent = 'Connecter via Bluetooth';
+  chars = {}; setChip('', 'Déconnecté');
+  if(fx){ fx = null; cvProg('Transfert interrompu (Bluetooth coupé).'); }
+  cvBleUpdate(); renderInfo(null); $('connectBtn').textContent = 'Connecter via Bluetooth';
   if(userDisconnect || !device) return;
   // Reconnexion automatique (3 essais), utile si on s'éloigne un instant
   for(let i = 0; i < 3 && device && !userDisconnect; i++){
@@ -1058,8 +1078,64 @@ async function cvFull(){
     cvDraw();
   }, locked ? 500 : 50);
 }
+// ── Courbes par Bluetooth (firmware 10.17.6+, caractéristique FILE) ──
+// L'appli écrit « file=o2 | press | trend » sur CMD ; l'appareil envoie des
+// notifications qui commencent par une lettre : B (début + taille), D (données),
+// E (fin + octets envoyés), X (refus + raison). Les tailles doivent concorder,
+// sinon « transfert incomplet » : jamais une courbe fausse.
+let fx = null, fxWatch = null;
+const FX_NAMES = { o2: 'Cellule O2', press: 'Pression', trend: 'Tendance' };
+function cvProg(t){ $('cvProg').textContent = t || ''; }
+function fxSize(n){ return n < 1024 ? n + ' octets' : (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' Ko'; }
+function cvBleUpdate(){
+  const ok = !!chars.file && !DEMO;
+  ['cvBleO2', 'cvBlePress', 'cvBleTrend'].forEach(id => { $(id).disabled = !ok || !!fx; });
+  if(fx) return;
+  if(DEMO) return;
+  if(!device || !device.gatt || !device.gatt.connected) cvProg("Connecte l'appareil (onglet Direct) pour lire ses courbes.");
+  else if(!chars.file) cvProg("Le firmware de l'appareil est trop ancien (10.17.6 nécessaire pour les courbes par Bluetooth).");
+  else if(/^Connecte|^Le firmware/.test($('cvProg').textContent)) cvProg('');
+}
+function fxEnd(msg){ fx = null; clearInterval(fxWatch); fxWatch = null; cvProg(msg); cvBleUpdate(); }
+async function cvBleGet(which){
+  if(!chars.file || fx) return;
+  fx = { which, name: '', total: -1, parts: [], got: 0, last: Date.now() };
+  cvBleUpdate(); cvProg(FX_NAMES[which] + ' : demande envoyée…');
+  clearInterval(fxWatch);
+  fxWatch = setInterval(() => { if(fx && Date.now() - fx.last > 20000) fxEnd("Pas de réponse de l'appareil : recommence."); }, 2000);
+  if(!await sendCmd('file=' + which)) fxEnd('Demande non envoyée : recommence.');
+}
+function onFileNotify(ev){
+  const dv = ev.target.value;
+  const u = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+  if(!u.length || !fx) return;
+  fx.last = Date.now();
+  const t = String.fromCharCode(u[0]), body = u.subarray(1);
+  if(t === 'B'){
+    const m = parseLine(dec.decode(body));
+    fx.name = m.f || 'fichier'; fx.total = parseInt(m.n, 10); fx.parts = []; fx.got = 0;
+    cvProg(FX_NAMES[fx.which] + ' : réception… 0 %');
+  } else if(t === 'D'){
+    fx.parts.push(body.slice()); fx.got += body.length;
+    if(fx.total > 0) cvProg(FX_NAMES[fx.which] + ' : réception… ' + Math.min(100, Math.floor(fx.got * 100 / fx.total)) + ' % (' + fxSize(fx.got) + ' / ' + fxSize(fx.total) + ')');
+  } else if(t === 'E'){
+    const n = parseInt(parseLine(dec.decode(body)).n, 10);
+    if(!(n === fx.total && fx.got === fx.total)){ fxEnd('Transfert incomplet (' + fx.got + ' / ' + fx.total + ' octets) : recommence.'); return; }
+    const all = new Uint8Array(fx.got); let o = 0;
+    for(const p of fx.parts){ all.set(p, o); o += p.length; }
+    const name = fx.name, label = FX_NAMES[fx.which];
+    try{ cvLoad(cvParse(dec.decode(all), name + ' (Bluetooth)'), true); fxEnd(label + ' : ' + fxSize(all.length) + ' reçus.'); }
+    catch(e){ fxEnd('Fichier reçu mais illisible : ' + e.message); }
+  } else if(t === 'X'){
+    fxEnd("Refusé par l'appareil : " + (parseLine(dec.decode(body)).m || '?'));
+  }
+}
 function initCourbes(){
   $('cvOpen').onclick = () => $('cvFile').click();
+  $('cvBleO2').onclick = () => cvBleGet('o2');
+  $('cvBlePress').onclick = () => cvBleGet('press');
+  $('cvBleTrend').onclick = () => cvBleGet('trend');
+  cvBleUpdate();
   $('cvFile').onchange = async () => {
     const f = $('cvFile').files[0]; if(!f) return;
     try{ cvLoad(cvParse(await f.text(), f.name), true); }catch(e){ alert('Fichier illisible : ' + e.message); }
